@@ -1,0 +1,26 @@
+{
+  "name": "srvagas_bot",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/scriptlver/srvagas_bot.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/scriptlver/srvagas_bot/issues"
+  },
+  "homepage": "https://github.com/scriptlver/srvagas_bot#readme",
+  "dependencies": {
+    "axios": "^1.21.1",
+    "cheerio": "^1.2.0",
+    "dotenv": "^18.0.10",
+    "telegraf": "^4.16.3"
+  }
+}
