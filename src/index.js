@@ -1,23 +1,29 @@
+const fs = require('fs');
+const path = require('path');
 const { bot, chatId } = require('./config/telegram');
+const { buscarGupy } = require('./scrapers/gupy');
+// const { buscarQueroVagas } = require('./scrapers/querovagas'); pra testar o querovagas dps
 
-const LIMITE_TELEGRAM = 4096;
+const ARQUIVO_ENVIADAS = path.join(__dirname, '..', 'enviadas.json');
+const LIMITE = 4096;
 
-// escapa caracteres especiais do HTML do Telegram
-const esc = (txt) =>
-  String(txt).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+const esc = (t) => String(t).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 
-// divide a lista de vagas em blocos que cabem em uma mensagem
+function lerEnviadas() {
+  try { return new Set(JSON.parse(fs.readFileSync(ARQUIVO_ENVIADAS, 'utf8'))); }
+  catch { return new Set(); }
+}
+
+function salvarEnviadas(set) {
+  fs.writeFileSync(ARQUIVO_ENVIADAS, JSON.stringify([...set], null, 2));
+}
+
 function montarMensagens(vagas) {
-  const cabecalho = '✨ <b>Novas Vagas Encontradas!</b> ✨\n\n';
   const mensagens = [];
-  let atual = cabecalho;
-
-  for (const vaga of vagas) {
-    const bloco = `👩‍💻 ${esc(vaga.titulo)}\n🔗 <a href="${esc(vaga.link)}">Ver vaga</a>\n\n`;
-    if ((atual + bloco).length > LIMITE_TELEGRAM) {
-      mensagens.push(atual);
-      atual = '';
-    }
+  let atual = '✨ <b>Novas Vagas Encontradas!</b> ✨\n\n';
+  for (const v of vagas) {
+    const bloco = `👩‍💻 ${esc(v.titulo)}\n🔗 <a href="${esc(v.link)}">Ver vaga (${esc(v.fonte)})</a>\n\n`;
+    if ((atual + bloco).length > LIMITE) { mensagens.push(atual); atual = ''; }
     atual += bloco;
   }
   if (atual.trim()) mensagens.push(atual);
@@ -25,29 +31,43 @@ function montarMensagens(vagas) {
 }
 
 async function rodarBot() {
-  console.log('Iniciando a caçada por vagas... 🕵️‍♀️');
+  console.log('Iniciando a caçada por vagas...');
 
-  const vagasEncontradas = [
-    { titulo: 'Desenvolvedor Front-end Jr (React)', link: 'https://exemplo.com/vaga1' },
-    { titulo: 'Estágio em Node.js', link: 'https://exemplo.com/vaga2' },
-  ];
+  const fontes = [buscarGupy /*, buscarQueroVagas */];
+  const resultados = await Promise.allSettled(fontes.map((f) => f()));
 
-  if (vagasEncontradas.length === 0) {
+  const todas = [];
+  resultados.forEach((r) => {
+    if (r.status === 'fulfilled') todas.push(...r.value);
+    else console.error('Scraper falhou:', r.reason.message);
+  });
+
+  const enviadas = lerEnviadas();
+  const vistas = new Set();
+  const novas = todas.filter((v) => {
+    if (!v.link || enviadas.has(v.link) || vistas.has(v.link)) return false;
+    vistas.add(v.link);
+    return true;
+  });
+
+  if (novas.length === 0) {
     console.log('Nenhuma vaga nova hoje.');
     return;
   }
 
   try {
-    for (const msg of montarMensagens(vagasEncontradas)) {
+    for (const msg of montarMensagens(novas)) {
       await bot.telegram.sendMessage(chatId, msg, {
         parse_mode: 'HTML',
         link_preview_options: { is_disabled: true },
       });
     }
-    console.log('Mensagem enviada com sucesso! 🤍');
+    novas.forEach((v) => enviadas.add(v.link));
+    salvarEnviadas(enviadas);
+    console.log(`${novas.length} vagas enviadas.`);
   } catch (erro) {
-    console.error('Erro ao enviar mensagem pro Telegram:', erro.message);
-    process.exitCode = 1; 
+    console.error('Erro ao enviar pro Telegram:', erro.message);
+    process.exitCode = 1;
   }
 }
 
