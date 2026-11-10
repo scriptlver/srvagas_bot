@@ -18,7 +18,7 @@ const MAX_VAGAS = 25;     // quantas vagas (as mais recentes) vão para o Telegr
 const PAUSA_MS = 300;     // pausa entre requisições para não sobrecarregar a API
 
 // vagas com estas palavras no título são descartadas (comparação sem acento)
-const EXCLUIR = /\b(senior|sr|pleno)\b/;
+const EXCLUIR = /\b(senior|sr|pleno|pl|ii|iii|n1|n2|n3|hibrido|hibrida)\b/;
 
 const HEADERS = {
   'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/120 Safari/537.36',

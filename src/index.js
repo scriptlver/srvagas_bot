@@ -2,12 +2,22 @@ const fs = require('fs');
 const path = require('path');
 const { bot, chatId } = require('./config/telegram');
 const { buscarGupy } = require('./scrapers/gupy');
-// const { buscarQueroVagas } = require('./scrapers/querovagas'); pra testar o querovagas dps
+const { buscarLinkedin } = require('./scrapers/linkedin');
+// const { buscarQueroVagas } = require('./scrapers/querovagas'); pra ver dps
 
 const ARQUIVO_ENVIADAS = path.join(__dirname, '..', 'enviadas.json');
 const LIMITE = 4096;
+const PAUSA_MS = 1000; 
 
+
+const FONTES = [
+  { chave: 'Gupy', emoji: '🟣' },
+  { chave: 'LinkedIn', emoji: '🔵' },
+];
+
+const dormir = (ms) => new Promise((r) => setTimeout(r, ms));
 const esc = (t) => String(t).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+const porData = (a, b) => (b.publicadaEm?.getTime() || 0) - (a.publicadaEm?.getTime() || 0);
 
 function lerEnviadas() {
   try { return new Set(JSON.parse(fs.readFileSync(ARQUIVO_ENVIADAS, 'utf8'))); }
@@ -18,22 +28,38 @@ function salvarEnviadas(set) {
   fs.writeFileSync(ARQUIVO_ENVIADAS, JSON.stringify([...set], null, 2));
 }
 
-function montarMensagens(vagas) {
-  const mensagens = [];
-  let atual = '✨ <b>Novas Vagas Encontradas!</b> ✨\n\n';
-  for (const v of vagas) {
-    const bloco = `👩‍💻 ${esc(v.titulo)}\n🔗 <a href="${esc(v.link)}">Ver vaga (${esc(v.fonte)})</a>\n\n`;
-    if ((atual + bloco).length > LIMITE) { mensagens.push(atual); atual = ''; }
-    atual += bloco;
+function montarMensagens(fonte, emoji, vagas) {
+  const cabecalho = (parte, total) =>
+    `${emoji} <b>Vagas ${esc(fonte)}</b> (${vagas.length})${total > 1 ? ` - parte ${parte}` : ''}\n\n`;
+
+  const blocos = vagas.map(
+    (v) => ({ vaga: v, texto: `👩‍💻 ${esc(v.titulo)}\n🔗 <a href="${esc(v.link)}">Ver vaga</a>\n\n` })
+  );
+
+  const grupos = [];
+  let atual = [];
+  let tamanho = cabecalho(1, 2).length;
+  for (const b of blocos) {
+    if (tamanho + b.texto.length > LIMITE && atual.length) {
+      grupos.push(atual);
+      atual = [];
+      tamanho = cabecalho(1, 2).length;
+    }
+    atual.push(b);
+    tamanho += b.texto.length;
   }
-  if (atual.trim()) mensagens.push(atual);
-  return mensagens;
+  if (atual.length) grupos.push(atual);
+
+  return grupos.map((g, i) => ({
+    texto: cabecalho(i + 1, grupos.length) + g.map((b) => b.texto).join(''),
+    vagas: g.map((b) => b.vaga),
+  }));
 }
 
 async function rodarBot() {
   console.log('Iniciando a caçada por vagas...');
 
-  const fontes = [buscarGupy /*, buscarQueroVagas */];
+  const fontes = [buscarGupy, buscarLinkedin, /*, buscarQueroVagas */];
   const resultados = await Promise.allSettled(fontes.map((f) => f()));
 
   const todas = [];
@@ -55,16 +81,26 @@ async function rodarBot() {
     return;
   }
 
+  let total = 0;
   try {
-    for (const msg of montarMensagens(novas)) {
-      await bot.telegram.sendMessage(chatId, msg, {
-        parse_mode: 'HTML',
-        link_preview_options: { is_disabled: true },
-      });
+    for (const { chave, emoji } of FONTES) {
+      const daFonte = novas.filter((v) => v.fonte === chave).sort(porData);
+      if (daFonte.length === 0) continue;
+
+      for (const msg of montarMensagens(chave, emoji, daFonte)) {
+        await bot.telegram.sendMessage(chatId, msg.texto, {
+          parse_mode: 'HTML',
+          link_preview_options: { is_disabled: true },
+        });
+        // marca como enviadas só depois que a mensagem foi entregue
+        msg.vagas.forEach((v) => enviadas.add(v.link));
+        salvarEnviadas(enviadas);
+        total += msg.vagas.length;
+        await dormir(PAUSA_MS);
+      }
+      console.log(`${chave}: ${daFonte.length} vagas enviadas.`);
     }
-    novas.forEach((v) => enviadas.add(v.link));
-    salvarEnviadas(enviadas);
-    console.log(`${novas.length} vagas enviadas.`);
+    console.log(`Concluído: ${total} vagas enviadas.`);
   } catch (erro) {
     console.error('Erro ao enviar pro Telegram:', erro.message);
     process.exitCode = 1;
