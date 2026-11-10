@@ -26,7 +26,6 @@ const HEADERS = {
   Referer: 'https://portal.gupy.io/job-search',
 };
 
-// tenta filtrar remoto já na API; se ela recusar o parâmetro, desliga e filtra só no código
 let filtroServidor = true;
 
 const dormir = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -108,7 +107,7 @@ async function buscarGupy() {
   for (const termo of TERMOS) {
     try {
       const vagas = await buscarTermo(termo);
-      vagas.forEach((v) => porLink.set(v.link, v)); // remove duplicadas entre termos
+      vagas.forEach((v) => porLink.set(v.link, v)); 
     } catch (erro) {
       console.error(`Gupy falhou em "${termo}":`, erro.response?.status || erro.message);
     }
