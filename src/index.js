@@ -3,16 +3,17 @@ const path = require('path');
 const { bot, chatId } = require('./config/telegram');
 const { buscarGupy } = require('./scrapers/gupy');
 const { buscarLinkedin } = require('./scrapers/linkedin');
-// const { buscarQueroVagas } = require('./scrapers/querovagas'); pra ver dps
+const { buscarQueroVagas } = require('./scrapers/querovagas');
 
 const ARQUIVO_ENVIADAS = path.join(__dirname, '..', 'enviadas.json');
 const LIMITE = 4096;
-const PAUSA_MS = 1000; 
-
+const MAX_POR_FONTE = 10; 
+const PAUSA_MS = 1000;   
 
 const FONTES = [
   { chave: 'Gupy', emoji: '🟣' },
   { chave: 'LinkedIn', emoji: '🔵' },
+  { chave: 'QueroVagas', emoji: '🟢' },
 ];
 
 const dormir = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -32,9 +33,10 @@ function montarMensagens(fonte, emoji, vagas) {
   const cabecalho = (parte, total) =>
     `${emoji} <b>Vagas ${esc(fonte)}</b> (${vagas.length})${total > 1 ? ` - parte ${parte}` : ''}\n\n`;
 
-  const blocos = vagas.map(
-    (v) => ({ vaga: v, texto: `👩‍💻 ${esc(v.titulo)}\n🔗 <a href="${esc(v.link)}">Ver vaga</a>\n\n` })
-  );
+  const blocos = vagas.map((v) => ({
+    vaga: v,
+    texto: `👩‍💻 ${esc(v.titulo)}\n🔗 <a href="${esc(v.link)}">Ver vaga</a>\n\n`,
+  }));
 
   const grupos = [];
   let atual = [];
@@ -59,8 +61,8 @@ function montarMensagens(fonte, emoji, vagas) {
 async function rodarBot() {
   console.log('Iniciando a caçada por vagas...');
 
-  const fontes = [buscarGupy, buscarLinkedin, /*, buscarQueroVagas */];
-  const resultados = await Promise.allSettled(fontes.map((f) => f()));
+  const scrapers = [buscarGupy, buscarLinkedin, buscarQueroVagas];
+  const resultados = await Promise.allSettled(scrapers.map((f) => f()));
 
   const todas = [];
   resultados.forEach((r) => {
@@ -68,6 +70,7 @@ async function rodarBot() {
     else console.error('Scraper falhou:', r.reason.message);
   });
 
+  // tira as repetidas
   const enviadas = lerEnviadas();
   const vistas = new Set();
   const novas = todas.filter((v) => {
@@ -75,6 +78,10 @@ async function rodarBot() {
     vistas.add(v.link);
     return true;
   });
+
+  console.log(
+    `Vagas novas: ${novas.length} (de ${todas.length} encontradas; ${todas.length - novas.length} já enviadas ou repetidas)`
+  );
 
   if (novas.length === 0) {
     console.log('Nenhuma vaga nova hoje.');
@@ -84,21 +91,24 @@ async function rodarBot() {
   let total = 0;
   try {
     for (const { chave, emoji } of FONTES) {
-      const daFonte = novas.filter((v) => v.fonte === chave).sort(porData);
-      if (daFonte.length === 0) continue;
+      const novasDaFonte = novas.filter((v) => v.fonte === chave).sort(porData);
+      const daFonte = novasDaFonte.slice(0, MAX_POR_FONTE);
+      if (daFonte.length === 0) {
+        console.log(`${chave}: nenhuma vaga nova.`);
+        continue;
+      }
 
       for (const msg of montarMensagens(chave, emoji, daFonte)) {
         await bot.telegram.sendMessage(chatId, msg.texto, {
           parse_mode: 'HTML',
           link_preview_options: { is_disabled: true },
         });
-        // marca como enviadas só depois que a mensagem foi entregue
         msg.vagas.forEach((v) => enviadas.add(v.link));
         salvarEnviadas(enviadas);
         total += msg.vagas.length;
         await dormir(PAUSA_MS);
       }
-      console.log(`${chave}: ${daFonte.length} vagas enviadas.`);
+      console.log(`${chave}: ${daFonte.length} enviadas (${novasDaFonte.length} novas no total).`);
     }
     console.log(`Concluído: ${total} vagas enviadas.`);
   } catch (erro) {

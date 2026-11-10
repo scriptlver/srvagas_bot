@@ -14,10 +14,9 @@ const TERMOS = [
 const URL_API = 'https://portal.gupy.io/api/job-search/jobs';
 const POR_PAGINA = 12;
 const PAGINAS = 5;        // até 60 vagas por termo antes dos filtros
-const MAX_VAGAS = 25;     // quantas vagas (as mais recentes) vão para o Telegram
-const PAUSA_MS = 300;     // pausa entre requisições para não sobrecarregar a API
+const MAX_VAGAS = 100;    // devolve bastante; o limite final é aplicado no index.js
+const PAUSA_MS = 300;
 
-// vagas com estas palavras no título são descartadas (comparação sem acento)
 const EXCLUIR = /\b(senior|sr|pleno|pl|ii|iii|n1|n2|n3|hibrido|hibrida)\b/;
 
 const HEADERS = {
@@ -26,11 +25,10 @@ const HEADERS = {
   Referer: 'https://portal.gupy.io/job-search',
 };
 
-let filtroServidor = true;
+let filtroServidor = true;              
+const valoresModelo = new Set();         
 
 const dormir = (ms) => new Promise((r) => setTimeout(r, ms));
-
-// minúsculas e sem acento: "Sênior" -> "senior"
 const normalizar = (t) =>
   String(t || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
 
@@ -42,8 +40,12 @@ function extrairLista(data) {
   return [];
 }
 
+// aceita Remote, REMOTE, remoto, isRemoteWork etc.
 function ehRemoto(v) {
-  return v.workplaceType === 'remote' || v.isRemoteWork === true;
+  if (v.isRemoteWork === true || v.remote === true) return true;
+  const modelo = normalizar(v.workplaceType || v.workModel || v.modality);
+  if (modelo) valoresModelo.add(modelo);
+  return modelo.includes('remot');
 }
 
 function mapear(v) {
@@ -54,7 +56,7 @@ function mapear(v) {
   const dataStr = v.publishedDate || v.publishedAt || v.createdAt || null;
 
   return {
-    nome, // título puro, usado nos filtros
+    nome,
     titulo: `${nome}${empresa ? ' - ' + empresa : ''}${local} [remoto]`,
     link,
     fonte: 'Gupy',
@@ -84,21 +86,27 @@ async function buscarTermo(termo) {
   const vagas = [];
 
   for (let p = 0; p < PAGINAS; p++) {
-    const lista = await buscarPagina(termo, p * POR_PAGINA);
+    let lista = await buscarPagina(termo, p * POR_PAGINA);
+
+    if (p === 0 && lista.length === 0 && filtroServidor) {
+      console.error('  Filtro de remoto da API retornou vazio; tentando sem ele.');
+      filtroServidor = false;
+      lista = await buscarPagina(termo, 0);
+    }
+
     vagas.push(...lista.map(mapear));
     if (lista.length < POR_PAGINA) break;
     await dormir(PAUSA_MS);
   }
 
-  const semData = vagas.filter((v) => !v.publicadaEm).length;
-  if (semData > 0) console.error(`  ${semData} vagas sem data em "${termo}"`);
+  const comLink = vagas.filter((v) => v.link);
+  const remotas = comLink.filter((v) => v.remoto);
+  const finais = remotas.filter((v) => !EXCLUIR.test(normalizar(v.nome)));
 
-  const remotas = vagas.filter((v) => v.link && v.remoto);
-  const semSenior = remotas.filter((v) => !EXCLUIR.test(normalizar(v.nome)));
   console.log(
-    `Gupy "${termo}": ${remotas.length} remotas, ${remotas.length - semSenior.length} descartadas (sênior/pleno)`
+    `Gupy "${termo}": ${comLink.length} vagas, ${remotas.length} remotas, ${finais.length} após exclusões`
   );
-  return semSenior;
+  return finais;
 }
 
 async function buscarGupy() {
@@ -107,18 +115,20 @@ async function buscarGupy() {
   for (const termo of TERMOS) {
     try {
       const vagas = await buscarTermo(termo);
-      vagas.forEach((v) => porLink.set(v.link, v)); 
+      vagas.forEach((v) => porLink.set(v.link, v));
     } catch (erro) {
       console.error(`Gupy falhou em "${termo}":`, erro.response?.status || erro.message);
     }
     await dormir(PAUSA_MS);
   }
 
+  console.log('Gupy: valores de workplaceType vistos:', [...valoresModelo]);
+
   const maisRecentes = [...porLink.values()]
     .sort((a, b) => (b.publicadaEm?.getTime() || 0) - (a.publicadaEm?.getTime() || 0))
     .slice(0, MAX_VAGAS);
 
-  console.log(`Total: ${porLink.size} vagas únicas, enviando as ${maisRecentes.length} mais recentes.`);
+  console.log(`Gupy: ${porLink.size} vagas únicas, devolvendo ${maisRecentes.length}.`);
   return maisRecentes;
 }
 

@@ -10,11 +10,11 @@ const TERMOS = [
 ];
 
 const URL_API = 'https://www.linkedin.com/jobs-guest/jobs/api/seeMoreJobPostings/search';
-const PAGINAS = 2;          // 2 x 25 = até 50 vagas por termo
-const MAX_VAGAS = 25;
-const PAUSA_MS = 1500;      // pausa generosa para não ser bloqueado
+const PAGINAS = 1;          
+const MAX_VAGAS = 100;    
+const PAUSA_MS = 4000;      
 const PERIODO = 'r604800';  // r86400 = 24h | r604800 = 7 dias | r2592000 = 30 dias
-const NIVEIS = '';          // opcional: '1,2' = estágio e júnior (f_E)
+const NIVEIS = '';         
 
 const INCLUIR = /\b(desenvolvedor|desenvolvedora|developer|dev|programador|programadora|software|full ?stack|back ?end|front ?end|estagio|estagiario|estagiaria|junior|jr)\b/;
 const EXCLUIR = /\b(senior|sr|pleno|pl|ii|iii|n1|n2|n3|hibrido|hibrida)\b/;
@@ -43,7 +43,7 @@ function parsear(html) {
     vagas.push({
       nome,
       titulo: `${nome} - ${empresa}${local ? ` (${local})` : ''} [remoto]`,
-      link: href.split('?')[0], // tira os parâmetros de rastreamento
+      link: href.split('?')[0], 
       fonte: 'LinkedIn',
       publicadaEm: dataStr ? new Date(dataStr) : null,
     });
@@ -59,9 +59,9 @@ async function buscarTermo(termo) {
     const params = {
       keywords: termo,
       location: 'Brazil',
-      f_WT: 2,            // remoto
+      f_WT: 2,            
       f_TPR: PERIODO,
-      sortBy: 'DD',       // mais recentes primeiro
+      sortBy: 'DD',       
       start: p * 25,
     };
     if (NIVEIS) params.f_E = NIVEIS;
@@ -72,7 +72,7 @@ async function buscarTermo(termo) {
 
     vagas.push(...pagina);
     if (pagina.length === 0) break;
-    await dormir(PAUSA_MS);
+    if (p < PAGINAS - 1) await dormir(PAUSA_MS);
   }
 
   const finais = vagas.filter((v) => {
@@ -86,7 +86,8 @@ async function buscarTermo(termo) {
 async function buscarLinkedin() {
   const porLink = new Map();
 
-  for (const termo of TERMOS) {
+  for (let i = 0; i < TERMOS.length; i++) {
+    const termo = TERMOS[i];
     try {
       const vagas = await buscarTermo(termo);
       vagas.forEach((v) => porLink.set(v.link, v));
@@ -98,12 +99,15 @@ async function buscarLinkedin() {
         break;
       }
     }
-    await dormir(PAUSA_MS);
+    if (i < TERMOS.length - 1) await dormir(PAUSA_MS);
   }
 
-  return [...porLink.values()]
+  const resultado = [...porLink.values()]
     .sort((a, b) => (b.publicadaEm?.getTime() || 0) - (a.publicadaEm?.getTime() || 0))
     .slice(0, MAX_VAGAS);
+
+  console.log(`LinkedIn: ${porLink.size} vagas únicas, devolvendo ${resultado.length}.`);
+  return resultado;
 }
 
 module.exports = { buscarLinkedin };
