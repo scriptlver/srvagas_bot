@@ -17,7 +17,7 @@ const PAGINAS = 5;        // até 60 vagas por termo antes dos filtros
 const MAX_VAGAS = 100;    // devolve bastante; o limite final é aplicado no index.js
 const PAUSA_MS = 300;
 
-const EXCLUIR = /\b(senior|sr|pleno|pl|ii|iii|n1|n2|n3|hibrido|hibrida)\b/;
+const EXCLUIR = /\b(senior|sr|pleno|pl|ii|iii|n1|n2|n3|hibrido|hibrida|pcd|mid|consultor|php|.net|angular)\b/;
 
 const HEADERS = {
   'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/120 Safari/537.36',

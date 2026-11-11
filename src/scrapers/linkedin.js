@@ -17,7 +17,7 @@ const PERIODO = 'r604800';  // r86400 = 24h | r604800 = 7 dias | r2592000 = 30 d
 const NIVEIS = '';         
 
 const INCLUIR = /\b(desenvolvedor|desenvolvedora|developer|dev|programador|programadora|software|full ?stack|back ?end|front ?end|estagio|estagiario|estagiaria|junior|jr)\b/;
-const EXCLUIR = /\b(senior|sr|pleno|pl|ii|iii|n1|n2|n3|hibrido|hibrida)\b/;
+const EXCLUIR = /\b(senior|sr|pleno|pl|ii|iii|n1|n2|n3|hibrido|hibrida|pcd|mid|consultor|php|.net|angular)\b/;
 
 const HEADERS = {
   'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/120 Safari/537.36',

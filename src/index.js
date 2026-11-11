@@ -7,7 +7,7 @@ const { buscarQueroVagas } = require('./scrapers/querovagas');
 
 const ARQUIVO_ENVIADAS = path.join(__dirname, '..', 'enviadas.json');
 const LIMITE = 4096;
-const MAX_POR_FONTE = 10; 
+const MAX_POR_FONTE = 25; 
 const PAUSA_MS = 1000;   
 
 const FONTES = [
