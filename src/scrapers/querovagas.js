@@ -10,7 +10,7 @@ const PAUSA_MS = 500;
 const IGNORAR_FONTES = /gupy/i; 
 
 const INCLUIR = /\b(desenvolvedor|desenvolvedora|developer|dev|programador|programadora|software|full ?stack|back ?end|front ?end|estagio|estagiario|estagiaria|junior|jr)\b/;
-const EXCLUIR = /\b(senior|sr|pleno|pl|ii|iii|n1|n2|n3|hibrido|hibrida)\b/;
+const EXCLUIR = /\b(senior|sr|pleno|pl|ii|iii|n1|n2|n3|hibrido|hibrida|pcd|mid|consultor|php|.net|angular)\b/;
 const SENIORIDADES_FORA = ['mid', 'senior', 'staff', 'lead', 'principal'];
 
 const HEADERS = {
