@@ -41,5 +41,5 @@ jobs:
             git config user.name "github-actions[bot]"
             git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
             git add enviadas.json
-            git diff --cached --quiet || (git commit -m "chore: atualiza histórico de vagas enviadas" && git push)
+            git diff --cached --quiet || (git commit -m "chore: atualiza histórico de vagas enviadas" && git pull --rebase && git push)
           fi
