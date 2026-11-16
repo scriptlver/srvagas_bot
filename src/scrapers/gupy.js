@@ -2,7 +2,7 @@ import { dormir, normalizar } from '../util.js';
 
 const URL_API = 'https://portal.gupy.io/api/job-search/jobs';
 const POR_PAGINA = 12;
-const PAGINAS = 3; // era 5; cada página é 1 requisição (limite do plano grátis: 50 por execução)
+const PAGINAS = 3;
 const MAX_VAGAS = 100;
 const PAUSA_MS = 200;
 
