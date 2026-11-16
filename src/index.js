@@ -53,7 +53,7 @@ async function enviarCabecalho(total) {
 Confira as oportunidades abaixo!
   `;
 
-  await bot.telegram.sendMessage(chatId, mensagem, {
+  await bot.telegram.sendMessage(chatIds, mensagem, {
     parse_mode: "HTML",
     link_preview_options: { is_disabled: true },
   });
