@@ -160,7 +160,7 @@ async function rodarBot() {
       }
 
       for (const msg of montarMensagens(chave, emoji, daFonte)) {
-        await bot.telegram.sendMessage(chatId, msg.texto, {
+        await bot.telegram.sendMessage(chatIds, msg.texto, {
           parse_mode: "HTML",
           link_preview_options: { is_disabled: true },
         });
