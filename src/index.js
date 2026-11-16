@@ -1,7 +1,7 @@
 const fs = require("fs");
 const path = require("path");
 
-const { bot, chatId } = require("./config/telegram");
+const { bot, chatIds } = require("./config/telegram");
 
 const { buscarGupy } = require("./scrapers/gupy");
 const { buscarLinkedin } = require("./scrapers/linkedin");
