@@ -1,0 +1,11 @@
+name = "srvagas-bot"
+main = "src/index.js"
+compatibility_date = "2025-01-01"
+compatibility_flags = ["nodejs_compat"]
+
+[triggers]
+crons = ["0 * * * *"]
+
+[[kv_namespaces]]
+binding = "KV"
+id = "1d1c860aa3e94407979ea5c975bac321"
