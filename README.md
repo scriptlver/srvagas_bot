@@ -127,13 +127,12 @@ o bot possui um painel de controle interativo diretamente no telegram, permitind
 entre as opções disponíveis estão:
 
 - ⏰ **horário de envio:** define o horário em que as oportunidades serão encaminhadas.
-- 🌎 **fuso horário:** permite ajustar o horário utilizado pelo agendamento.
 - 📊 **quantidade por fonte:** configura o limite de oportunidades enviadas por plataforma.
 - 🏠 **modalidade remota:** permite filtrar oportunidades exclusivamente remotas.
 - ✅ **incluir termos:** define palavras-chave que devem estar presentes nas oportunidades.
 - ❌ **excluir termos:** define palavras-chave que devem ser ignoradas.
-- ⏸️ **pausar agendamento:** permite interromper temporariamente os envios automáticos.
 - 🧹 **limpar histórico:** permite gerenciar o histórico de oportunidades enviadas.
+- 🔎 **buscar vagas agora:** permite buscar vagas imediatamente.
 
 as configurações podem ser ajustadas diretamente pelos botões disponibilizados na conversa com o bot.
 
