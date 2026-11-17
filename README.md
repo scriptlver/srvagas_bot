@@ -18,7 +18,6 @@ atualmente, o bot utiliza as seguintes fontes de oportunidades:
 
 - 💼 gupy
 - 🏢 sólides
-- 🔎 querovagas
 
 o projeto foi desenvolvido com foco na automação da busca por vagas, permitindo centralizar oportunidades em um único canal de comunicação e facilitar o acompanhamento de novas publicações.
 
@@ -54,9 +53,7 @@ srvagas_bot/
 │   │   └─ telegram.js        # integração com o telegram
 │   │
 │   ├─ scrapers/              # módulos de coleta de oportunidades
-│   │   ├─ catho.js
-│   │   ├─ guppy.js
-│   │   ├─ querovagas.js
+│   │   ├─ gupy.js
 │   │   └─ solides.js
 │   │
 │   ├─ index.js               # inicialização e execução do bot
@@ -80,7 +77,7 @@ a arquitetura do projeto é organizada em cinco etapas:
 
 1. **telegram:** recebe as mensagens dos usuários e encaminha as solicitações para o worker por meio de um webhook.
 2. **cloudflare workers:** recebe as mensagens, executa o `index.js` e coordena as operações do bot.
-3. **scrapers:** consultam as plataformas de recrutamento e seleção, como gupy, sólides e querovagas, para coletar as oportunidades disponíveis.
+3. **scrapers:** consultam as plataformas de recrutamento e seleção, como gupy e sólides para coletar as oportunidades disponíveis.
 4. **cloudflare kv:** armazena as configurações e o histórico individual de cada usuário.
 5. **telegram:** recebe os resultados processados e realiza o envio das oportunidades aos usuários.
 
