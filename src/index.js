@@ -1,8 +1,6 @@
 
 import { buscarGupy } from './scrapers/gupy.js';
-import { buscarQueroVagas } from './scrapers/querovagas.js';
 import { buscarSolides } from './scrapers/solides.js';
-import { buscarCatho } from './scrapers/catho.js';
 
 const LIMITE = 4000;
 const PAUSA_MS = 800;
@@ -41,9 +39,7 @@ const DEFAULTS = {
 
 const FONTES = [
   { chave: 'Gupy', emoji: '🟣', buscar: buscarGupy },
-  { chave: 'QueroVagas', emoji: '🟢', buscar: buscarQueroVagas },
   { chave: 'Solides', emoji: '🟠', buscar: buscarSolides },
-  { chave: 'Catho', emoji: '🔵', buscar: buscarCatho },
 ];
 
 const dormir = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
@@ -161,9 +157,6 @@ function mainView(u) {
     `🔎 <b>FILTROS DE BUSCA</b>\n` +
     `✅ Termos incluídos: <b>${u.include.length}</b>\n` +
     `❌ Termos excluídos: <b>${u.exclude.length}</b>\n\n` +
-    `📨 <b>ESTATÍSTICAS</b>\n` +
-    `💼 Vagas enviadas: <b>${u.sentJobs}</b>\n` +
-    `✉️ Mensagens com vagas: <b>${u.sentMessages}</b>\n\n` +
     `Escolha uma opção para configurar o bot:`;
 
   const kb = [
