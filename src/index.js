@@ -1,3 +1,4 @@
+
 import { buscarGupy } from './scrapers/gupy.js';
 import { buscarQueroVagas } from './scrapers/querovagas.js';
 import { buscarSolides } from './scrapers/solides.js';
@@ -33,6 +34,8 @@ const DEFAULTS = {
   paused: false,
   awaiting: null,
   sent: [],
+  sentJobs: 0,
+  sentMessages: 0,
   lastRun: '',
 };
 
@@ -92,6 +95,8 @@ async function getUser(env, chatId) {
     include: Array.isArray(salvo.include) ? salvo.include : [...DEFAULTS.include],
     exclude: Array.isArray(salvo.exclude) ? salvo.exclude : [...DEFAULTS.exclude],
     sent: Array.isArray(salvo.sent) ? salvo.sent : [],
+    sentJobs: Number.isFinite(salvo.sentJobs) ? salvo.sentJobs : 0,
+    sentMessages: Number.isFinite(salvo.sentMessages) ? salvo.sentMessages : 0,
   };
 }
 
@@ -146,20 +151,26 @@ async function editarMensagem(env, dados) {
 
 function mainView(u) {
   const text =
-    `💼 <b>CONFIGURAÇÕES DO BOT</b>\n\n` +
-    `⏰ Horário: <b>${String(u.hour).padStart(2, '0')}:00</b>\n` +
-    `🌎 Fuso: <b>${fmtTz(u.tz)}</b>\n` +
+    `💼 <b>SRVAGAS — PAINEL DE CONTROLE</b>\n\n` +
+    `⚙️ <b>PREFERÊNCIAS</b>\n` +
+    `⏰ Horário de envio: <b>${String(u.hour).padStart(2, '0')}:00</b>\n` +
+    `🌎 Fuso horário: <b>${fmtTz(u.tz)}</b>\n` +
     `📊 Limite por fonte: <b>${u.count} vagas</b>\n` +
-    `🏠 Remotas: <b>${u.remoto ? 'Sim' : 'Não'}</b>\n` +
+    `🏠 Apenas remotas: <b>${u.remoto ? 'Sim' : 'Não'}</b>\n` +
     `⏯️ Agendamento: <b>${u.paused ? 'Pausado' : 'Ativo'}</b>\n\n` +
+    `🔎 <b>FILTROS DE BUSCA</b>\n` +
     `✅ Termos incluídos: <b>${u.include.length}</b>\n` +
-    `❌ Termos excluídos: <b>${u.exclude.length}</b>\n` +
-    `🗂️ Histórico: <b>${u.sent.length} vagas já enviadas</b>\n\n` +
-    `Escolha uma opção abaixo:`;
+    `❌ Termos excluídos: <b>${u.exclude.length}</b>\n\n` +
+    `📨 <b>ESTATÍSTICAS</b>\n` +
+    `💼 Vagas enviadas: <b>${u.sentJobs}</b>\n` +
+    `✉️ Mensagens com vagas: <b>${u.sentMessages}</b>\n\n` +
+    `Escolha uma opção para configurar o bot:`;
 
   const kb = [
-    [btn('⏰ Horário', 'hour'), btn('🌎 Fuso horário', 'tz')],
-    [btn('📊 Quantidade', 'count'), btn('🏠 Remoto', 'rem')],
+    [btn('⏰ Horário de envio', 'hour')],
+    [btn('🌎 Fuso horário', 'tz')],
+    [btn('📊 Quantidade por fonte', 'count')],
+    [btn('🏠 Modalidade remota', 'rem')],
     [btn('✅ Incluir termos', 'inc'), btn('❌ Excluir termos', 'exc')],
     [btn(u.paused ? '▶️ Ativar agendamento' : '⏸️ Pausar agendamento', 'pause')],
     [btn('🧹 Limpar histórico', 'reset')],
@@ -369,9 +380,11 @@ async function mostrarPaginaRestantes(env, chatId, messageId, id, pagina) {
 
   const user = await getUser(env, chatId);
   const linksVistos = new Set(user.sent);
+
   for (const vaga of salvo.vagas) {
     if (vaga.link) linksVistos.add(vaga.link);
   }
+
   user.sent = [...linksVistos].slice(-MAX_ENVIADAS);
   await saveUser(env, user);
 
@@ -494,6 +507,7 @@ async function sendJobs(env, user, { manual = false, cache = new Map() } = {}) {
 
     if (restantes.length) {
       const id = crypto.randomUUID().replace(/-/g, '').slice(0, 12);
+
       await env.KV.put(
         `r:${user.chatId}:${id}`,
         JSON.stringify({ vagas: restantes, resumo }),
@@ -524,6 +538,9 @@ async function sendJobs(env, user, { manual = false, cache = new Map() } = {}) {
 
       for (const mensagem of mensagens) {
         await say(env, user.chatId, mensagem.texto);
+
+        user.sentJobs += mensagem.vagas.length;
+        user.sentMessages++;
 
         for (const vaga of mensagem.vagas) enviadas.add(vaga.link);
 
@@ -660,7 +677,14 @@ async function onCallback(env, callback) {
   if (data.startsWith('all:')) {
     const [, id, pagina] = data.split(':');
     if (!/^[a-f0-9]{12}$/i.test(id || '')) return;
-    return mostrarPaginaRestantes(env, chatId, messageId, id, pagina === 'back' ? 'back' : pagina);
+
+    return mostrarPaginaRestantes(
+      env,
+      chatId,
+      messageId,
+      id,
+      pagina === 'back' ? 'back' : pagina,
+    );
   }
 
   const user = await getUser(env, chatId);
@@ -683,6 +707,8 @@ async function onCallback(env, callback) {
     view = mainView(user);
   } else if (data === 'reset') {
     user.sent = [];
+    user.sentJobs = 0;
+    user.sentMessages = 0;
     user.lastRun = '';
     user.awaiting = null;
     view = mainView(user);
