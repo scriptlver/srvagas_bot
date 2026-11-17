@@ -25,77 +25,92 @@ function ehRemoto(v) {
   return normalizar(v.workplaceType || v.workModel || v.modality).includes('remot');
 }
 
-function mapear(v, remoto) {
+function mapear(v) {
   const nome = v.name || v.title || '(sem título)';
   const empresa = v.careerPageName || v.company || v.companyName || '';
-  const local = v.city ? ` (${v.city}/${v.state})` : '';
+  const local = v.city ? ` (${v.city}/${v.state || ''})` : '';
   const link = v.jobUrl || v.url || v.applyUrl || (v.id ? `https://portal.gupy.io/job/${v.id}` : null);
   const dataStr = v.publishedDate || v.publishedAt || v.createdAt || null;
-  const ehRem = ehRemoto(v);
+  const remoto = ehRemoto(v);
+
   return {
     nome,
-    titulo: `${nome}${empresa ? ' - ' + empresa : ''}${local}${ehRem ? ' [remoto]' : ''}`,
+    titulo: `${nome}${empresa ? ` - ${empresa}` : ''}${local}${remoto ? ' [remoto]' : ''}`,
     link,
     fonte: 'Gupy',
-    remoto: ehRem,
+    remoto,
     publicadaEm: dataStr ? new Date(dataStr) : null,
   };
 }
 
-async function buscarPagina(termo, offset, est) {
-  const p = new URLSearchParams({ jobName: termo, limit: POR_PAGINA, offset, sortBy: 'publishedDate' });
-  if (est.filtroServidor) p.set('workplaceTypes[]', 'remote');
+async function buscarPagina(termo, offset, estado) {
+  const params = new URLSearchParams({
+    jobName: termo,
+    limit: String(POR_PAGINA),
+    offset: String(offset),
+    sortBy: 'publishedDate',
+  });
 
-  const r = await fetch(`${URL_API}?${p}`, { headers: HEADERS });
-  if (!r.ok) {
-    if (est.filtroServidor && r.status === 400) {
-      console.log('  Gupy recusou o filtro de remoto; usando só o filtro local.');
-      est.filtroServidor = false;
-      return buscarPagina(termo, offset, est);
+  if (estado.filtroServidor) params.set('workplaceTypes[]', 'remote');
+
+  const response = await fetch(`${URL_API}?${params}`, { headers: HEADERS });
+
+  if (!response.ok) {
+    if (estado.filtroServidor && response.status === 400) {
+      console.log('Gupy recusou o filtro remoto; usando filtro local.');
+      estado.filtroServidor = false;
+      return buscarPagina(termo, offset, estado);
     }
-    throw new Error(`HTTP ${r.status}`);
+    throw new Error(`Gupy HTTP ${response.status}`);
   }
-  return extrairLista(await r.json());
+
+  return extrairLista(await response.json());
 }
 
-async function buscarTermo(termo, remoto, est) {
+async function buscarTermo(termo, remoto) {
+  const estado = { filtroServidor: remoto };
   const vagas = [];
-  for (let p = 0; p < PAGINAS; p++) {
-    let lista = await buscarPagina(termo, p * POR_PAGINA, est);
-    if (p === 0 && lista.length === 0 && est.filtroServidor) {
-      console.log('  Filtro de remoto retornou vazio; tentando sem ele.');
-      est.filtroServidor = false;
-      lista = await buscarPagina(termo, 0, est);
+
+  for (let pagina = 0; pagina < PAGINAS; pagina++) {
+    let lista = await buscarPagina(termo, pagina * POR_PAGINA, estado);
+
+    if (pagina === 0 && lista.length === 0 && estado.filtroServidor) {
+      console.log('Gupy não retornou vagas remotas; tentando sem o filtro remoto.');
+      estado.filtroServidor = false;
+      lista = await buscarPagina(termo, 0, estado);
     }
-    vagas.push(...lista.map((v) => mapear(v, remoto)));
+
+    vagas.push(...lista.map(mapear));
+
     if (lista.length < POR_PAGINA) break;
     await dormir(PAUSA_MS);
   }
-  const comLink = vagas.filter((v) => v.link);
-  return remoto ? comLink.filter((v) => v.remoto) : comLink;
+
+  const comLink = vagas.filter((vaga) => vaga.link);
+  return remoto ? comLink.filter((vaga) => vaga.remoto) : comLink;
 }
 
-export async function buscarGupy({ termos, remoto, cache = new Map() }) {
-  const est = { filtroServidor: remoto };
-
+export async function buscarGupy({ termos = [], remoto = true, cache = new Map() } = {}) {
   const listas = await Promise.all(
     termos.map(async (termo) => {
       const chave = `gupy|${termo}|${remoto}`;
       if (cache.has(chave)) return cache.get(chave);
+
       try {
-        const v = await buscarTermo(termo, remoto, est);
-        console.log(`Gupy "${termo}": ${v.length} vagas`);
-        cache.set(chave, v);
-        return v;
-      } catch (e) {
-        console.log(`Gupy falhou em "${termo}":`, e.message);
+        const vagas = await buscarTermo(termo, remoto);
+        console.log(`Gupy "${termo}": ${vagas.length} vagas`);
+        cache.set(chave, vagas);
+        return vagas;
+      } catch (error) {
+        console.log(`Gupy falhou em "${termo}":`, error.message);
         return [];
       }
     }),
   );
 
   const porLink = new Map();
-  listas.flat().forEach((v) => porLink.set(v.link, v));
+  listas.flat().forEach((vaga) => porLink.set(vaga.link, vaga));
+
   return [...porLink.values()]
     .sort((a, b) => (b.publicadaEm?.getTime() || 0) - (a.publicadaEm?.getTime() || 0))
     .slice(0, MAX_VAGAS);
