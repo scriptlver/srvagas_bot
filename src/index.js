@@ -2,6 +2,7 @@
 import { buscarGupy } from './scrapers/gupy.js';
 import { buscarLinkedin } from './scrapers/linkedin.js';
 import { buscarQueroVagas } from './scrapers/querovagas.js';
+const { bot, chatIds } = require("./config/telegram");
 
 const LIMITE = 4000;
 const PAUSA_MS = 800;
@@ -264,6 +265,29 @@ function addTerms(lista, termos) {
   }
 }
 
+function salvarEnviadas(set) {
+  fs.writeFileSync(ARQUIVO_ENVIADAS, JSON.stringify([...set], null, 2));
+}
+
+async function enviarCabecalho(total) {
+  const data = new Date().toLocaleDateString("pt-BR");
+
+  const mensagem = `
+💼 <b>RELATÓRIO DE VAGAS — ${data}</b>
+
+📌 Encontramos <b>${total} novas vagas</b> para você.
+
+Confira as oportunidades abaixo!
+  `;
+
+  await bot.telegram.sendMessage(chatIds, mensagem, {
+    parse_mode: "HTML",
+    link_preview_options: { is_disabled: true },
+  });
+
+  await dormir(PAUSA_MS);
+}
+
 function montarMensagens(fonte, emoji, vagas) {
   if (!vagas.length) return [];
 
@@ -344,7 +368,6 @@ async function sendJobs(env, user, { manual = false, cache = new Map() } = {}) {
       }
 
       const nome = normalizar(vaga.nome || vaga.titulo || '');
-
       if (user.exclude.some((termo) => nome.includes(normalizar(termo)))) {
         return false;
       }
