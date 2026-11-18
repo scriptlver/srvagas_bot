@@ -1,4 +1,4 @@
-import { dormir, normalizar } from '../util.js';
+import { dormir, normalizar } from '../utils.js';
 
 const URL_API = 'https://portal.gupy.io/api/job-search/jobs';
 const POR_PAGINA = 12;

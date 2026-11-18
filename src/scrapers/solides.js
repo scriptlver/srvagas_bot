@@ -1,4 +1,4 @@
-import { dormir, normalizar } from '../util.js';
+import { dormir, normalizar } from '../utils.js';
 
 const URL_API = 'https://vagas.solides.com.br/api/vacancies';
 const POR_PAGINA = 14;
