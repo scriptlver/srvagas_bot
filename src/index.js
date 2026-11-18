@@ -4,6 +4,7 @@ import { getUser, saveUser } from './user.js';
 import { tg, say, editarMensagem } from './telegram.js';
 import {
   mainView,
+  configView,
   fontesView,
   hourView,
   countView,
@@ -20,6 +21,7 @@ async function onMessage(env, mensagem) {
   if (!texto) return;
 
   const user = await getUser(env, chatId);
+  if (mensagem.from?.first_name) user.nome = mensagem.from.first_name;
   const [comandoOriginal, ...resto] = texto.split(/\s+/);
   const comando = comandoOriginal.startsWith('/')
     ? comandoOriginal.split('@')[0].toLowerCase()
@@ -105,11 +107,15 @@ async function onCallback(env, callback) {
   }
 
   const user = await getUser(env, chatId);
+  if (callback.from?.first_name) user.nome = callback.from.first_name;
   let view;
 
   if (data === 'menu') {
     user.awaiting = null;
     view = mainView(user);
+  } else if (data === 'cfg') {
+    user.awaiting = null;
+    view = configView(user);
   } else if (data === 'hour') {
     view = hourView(user);
   } else if (data === 'count') {
@@ -157,7 +163,7 @@ async function onCallback(env, callback) {
     view = fontesView(user);
   } else if (data === 'rem') {
     user.remoto = !user.remoto;
-    view = mainView(user);
+    view = configView(user);
   } else if (data === 'pause') {
     user.paused = !user.paused;
     view = mainView(user);
@@ -167,22 +173,22 @@ async function onCallback(env, callback) {
     user.sentMessages = 0;
     user.lastRun = '';
     user.awaiting = null;
-    view = mainView(user);
+    view = configView(user);
   } else if (data.startsWith('h:')) {
     const hour = Number(data.slice(2));
     if (!Number.isInteger(hour) || hour < 0 || hour > 23) return;
     user.hour = hour;
-    view = mainView(user);
+    view = configView(user);
   } else if (data.startsWith('c:')) {
     const count = Number(data.slice(2));
     if (![5, 10, 15, 20, 25, 30, 40, 50].includes(count)) return;
     user.count = count;
-    view = mainView(user);
+    view = configView(user);
   } else if (data.startsWith('z:')) {
     const timezone = Number(data.slice(2));
     if (!Number.isInteger(timezone) || timezone < -12 || timezone > 14) return;
     user.tz = timezone;
-    view = mainView(user);
+    view = configView(user);
   } else if (data === 'inc' || data === 'exc') {
     const tipo = data === 'inc' ? 'include' : 'exclude';
     user.awaiting = tipo;

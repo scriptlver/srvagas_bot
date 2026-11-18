@@ -1,6 +1,7 @@
 import { FONTES_PADRAO, sanitizarFontes } from './sources.js';
 
 export const DEFAULTS = {
+  nome: '',
   hour: 9,
   count: 25,
   tz: -3,

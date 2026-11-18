@@ -9,29 +9,49 @@ export function mainView(u) {
   const fontes = fontesAtivas(u).map((f) => f.chave).join(' + ');
 
   const text =
-    `💼 Sr. Vagas — Painel de controle!\n\n` +
+    `Olá${u.nome ? ` ${escaparHTML(u.nome)}` : ''}! como vai? 😊\n\n` +
 
-    `⚙️ <b>PREFERÊNCIAS</b>\n` +
-    `⏰ Horário de envio: ${String(u.hour).padStart(2, '0')}:00\n` +
+    `⚙️ <b>Suas preferências</b>\n` +
+    `⏰ Horário de envio das vagas: ${String(u.hour).padStart(2, '0')}:00\n` +
     `📊 Limite por fonte: ${u.count} vagas\n` +
-    `🏠 Apenas remotas: ${u.remoto ? 'Sim' : 'Não'}\n` +
-    `🌐 Fontes: ${escaparHTML(fontes)}\n\n` +
-
-    `🔎 <b>FILTROS DE BUSCA</b>\n` +
+    `🏠 Apenas vagas remotas: ${u.remoto ? 'Sim' : 'Não'}\n` +
+    `🌐 Fontes: ${escaparHTML(fontes)}\n` +
+    RULER + '\n' +
+    `🔎 <b>Seus filtros de busca</b>\n` +
     `✅ Termos incluídos: ${u.include.length}\n` +
     `❌ Termos excluídos: ${u.exclude.length}\n\n` +
 
-    `Escolha uma opção para configurar o bot:\n` +
+    `Escolha uma opção abaixo:\n`;
+
+  const kb = [
+    [btn('🔎 Buscar vagas agora', 'now')],
+    [btn('⚙️ Configurações', 'cfg')],
+  ];
+
+  return { text, kb };
+}
+
+export function configView(u) {
+  const text =
+    `⚙️ <b>Configurações</b>\n\n` +
+    `Toque em uma opção para alterar.\n` +
     RULER;
 
   const kb = [
-    [btn('⏰ Horário de envio', 'hour')],
-    [btn('📊 Quantidade por fonte', 'count')],
-    [btn('🌐 Fontes de vagas', 'src')],
-    [btn('🏠 Modalidade remota', 'rem')],
-    [btn('✅ Incluir termos', 'inc'), btn('❌ Excluir termos', 'exc')],
+    [
+      btn(`⏰ Horário: ${String(u.hour).padStart(2, '0')}:00`, 'hour'),
+      btn(`📊 Limite: ${u.count}`, 'count'),
+    ],
+    [
+      btn(`🌐 Fontes: ${fontesAtivas(u).length}/${MAX_FONTES}`, 'src'),
+      btn(`🏠 Remoto: ${u.remoto ? 'Sim' : 'Não'}`, 'rem'),
+    ],
+    [
+      btn(`✅ Incluir (${u.include.length})`, 'inc'),
+      btn(`❌ Excluir (${u.exclude.length})`, 'exc'),
+    ],
     [btn('🧹 Limpar histórico', 'reset')],
-    [btn('🔎 Buscar vagas agora', 'now')],
+    [btn('⬅️ Voltar', 'menu')],
   ];
 
   return { text, kb };
@@ -54,7 +74,7 @@ export function fontesView(u) {
     ),
   ]);
 
-  kb.push([btn('⬅️ Voltar', 'menu')]);
+  kb.push([btn('⬅️ Voltar', 'cfg')]);
 
   return { text, kb };
 }
@@ -74,7 +94,7 @@ export function hourView(u) {
     );
   }
 
-  rows.push([btn('⬅️ Voltar', 'menu')]);
+  rows.push([btn('⬅️ Voltar', 'cfg')]);
 
   return {
     text: '⏰ <b>Horário do envio automático</b>\n\nEscolha a hora em que deseja receber as vagas.',
@@ -90,7 +110,7 @@ export function countView(u) {
     kb: [
       values.slice(0, 4).map((n) => btn(`${n}${u.count === n ? ' ✓' : ''}`, `c:${n}`)),
       values.slice(4).map((n) => btn(`${n}${u.count === n ? ' ✓' : ''}`, `c:${n}`)),
-      [btn('⬅️ Voltar', 'menu')],
+      [btn('⬅️ Voltar', 'cfg')],
     ],
   };
 }
@@ -112,7 +132,7 @@ export function tzView(u) {
     rows.push(row);
   }
 
-  rows.push([btn('⬅️ Voltar', 'menu')]);
+  rows.push([btn('⬅️ Voltar', 'cfg')]);
 
   return {
     text: '🌎 <b>Fuso horário</b>\n\nEscolha o fuso horário usado para calcular o horário dos envios.',
@@ -136,7 +156,7 @@ export function termsView(u, kind) {
       `Para cancelar, use /cancelar.`,
     kb: [
       [btn('🗑️ Limpar termos', `clr:${kind}`)],
-      [btn('⬅️ Voltar', 'menu')],
+      [btn('⬅️ Voltar', 'cfg')],
     ],
   };
 }
