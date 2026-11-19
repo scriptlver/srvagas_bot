@@ -316,7 +316,14 @@ export default {
     return new Response("vagas-bot ok");
   },
 
-  async scheduled(_event, env, ctx) {
-    ctx.waitUntil(runCron(env));
+  async scheduled(event, env, ctx) {
+    ctx.waitUntil(
+      runCron(env, event.scheduledTime).catch((error) => {
+        console.log(
+          "Falha na execução do Cron:",
+          error?.stack || String(error),
+        );
+      }),
+    );
   },
 };

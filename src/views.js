@@ -52,6 +52,9 @@ export function configView(u) {
 
   const kb = [
     [
+      btn(`📍 Local: ${formatarLocal(u.local) || "qualquer"}`, "loc"),
+    ],
+    [
       btn(`⏰ Horário: ${String(u.hour).padStart(2, "0")}:00`, "hour"),
       btn(`📊 Limite: ${u.count}`, "count"),
     ],
@@ -59,7 +62,6 @@ export function configView(u) {
       btn(`🌐 Fontes: ${fontesAtivas(u).length}/${MAX_FONTES}`, "src"),
       btn(`🏠 Remoto: ${u.remoto ? "Sim" : "Não"}`, "rem"),
     ],
-    [btn(`📍 Local: ${formatarLocal(u.local) || "qualquer"}`, "loc")],
     [
       btn(`✅ Incluir (${u.include.length})`, "inc"),
       btn(`❌ Excluir (${u.exclude.length})`, "exc"),
@@ -81,9 +83,9 @@ export function localView(u) {
       `📍 <b>Localização</b>\n\n` +
       `Atual: <b>${escaparHTML(atual)}</b>\n\n` +
       `Envie a cidade e/ou o estado. Exemplos:\n` +
-      `• <code>João Monlevade, MG</code>\n` +
+      `• <code>São Paulo, SP</code>\n` +
       `• <code>Curitiba, PR</code>\n` +
-      `• <code>SP</code>` +
+      `• <code>ou para um estado inteiro, apenas "SP"</code>` +
       aviso +
       `\n\nPara cancelar, use /cancelar.\n` +
       RULER,
@@ -194,7 +196,10 @@ export function termsView(u, kind) {
       `${lista}\n\n` +
       `Envie os termos separados por vírgula ou em linhas diferentes.\n` +
       `Para cancelar, use /cancelar.`,
-    kb: [[btn("🗑️ Limpar termos", `clr:${kind}`)], [btn("⬅️ Voltar", "cfg")]],
+    kb: [
+      [btn("🗑️ Limpar termos", `clr:${kind}`)],
+      [btn("⬅️ Voltar", "cfg")],
+    ],
   };
 }
 
@@ -241,7 +246,10 @@ export function criarTextoPagina(vagas, pagina, total) {
 
   const linhas = itens.map((vaga, index) => {
     const numero = inicio + index + 1;
-    const fonte = vaga.fonte ? ` <i>(${escaparHTML(vaga.fonte)})</i>` : "";
+    const fonte = vaga.fonte
+      ? ` <i>(${escaparHTML(vaga.fonte)})</i>`
+      : "";
+
     return (
       `<b>${numero}. ${escaparHTML(vaga.titulo || vaga.nome || "Vaga")}</b>${fonte}\n` +
       `🔗 <a href="${escaparHTML(vaga.link)}">Ver vaga</a>`
@@ -260,9 +268,13 @@ export function criarTextoPagina(vagas, pagina, total) {
 export function tecladoPagina(id, pagina, totalPaginas) {
   const botoes = [];
 
-  if (pagina > 0) botoes.push(btn("⬅️ Anterior", `all:${id}:${pagina - 1}`));
-  if (pagina + 1 < totalPaginas)
+  if (pagina > 0) {
+    botoes.push(btn("⬅️ Anterior", `all:${id}:${pagina - 1}`));
+  }
+
+  if (pagina + 1 < totalPaginas) {
     botoes.push(btn("Próxima ➡️", `all:${id}:${pagina + 1}`));
+  }
 
   return [
     ...(botoes.length ? [botoes] : []),
