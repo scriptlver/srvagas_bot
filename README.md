@@ -1,3 +1,4 @@
+
 <h1 align="center">⭐ sr. vagas – bot de divulgação de oportunidades</h1>
 
 <p align="center">
@@ -18,6 +19,9 @@ atualmente, o bot utiliza as seguintes fontes de oportunidades:
 
 - 💼 gupy
 - 🏢 sólides
+- 🟢 geekhunter
+- 🔵 recrutei
+- 🟡 trampos.co
 
 o projeto foi desenvolvido com foco na automação da busca por vagas, permitindo centralizar oportunidades em um único canal de comunicação e facilitar o acompanhamento de novas publicações.
 
@@ -41,32 +45,36 @@ a estrutura do projeto está organizada da seguinte forma:
 ```plaintext
 srvagas_bot/
 │
-├─ .wrangler/                 # configurações locais do wrangler
-├─ assets/                    # imagens e recursos visuais
-├─ node_modules/              # dependências do projeto
+├─ .wrangler/                  # configurações locais do wrangler
+├─ assets/                     # imagens e recursos visuais
+├─ node_modules/               # dependências do projeto
 │
-├─ src/                       # código-fonte principal
+├─ src/                        # código-fonte principal
 │   │
-│   ├─ scrapers/              # módulos de coleta de oportunidades
+│   ├─ scrapers/               # módulos de coleta de oportunidades
+│   │   ├─ geekhunter.js
 │   │   ├─ gupy.js
-│   │   └─ solides.js
+│   │   ├─ recrutei.js
+│   │   ├─ solides.js
+│   │   └─ trampos.js
 │   │
-│   ├─ config.js              # configurações do bot
-│   ├─ index.js               # inicialização e execução do bot
-│   ├─ jobs.js                # gerenciamento das vagas
+│   ├─ config.js               # configurações do bot
+│   ├─ index.js                # inicialização e execução do bot
+│   ├─ jobs.js                 # gerenciamento das vagas
+│   ├─ local.js                # gerenciamento da localização
 │   ├─ sources.js              # gerenciamento das fontes
-│   ├─ telegram.js            # integração com o telegram
-│   ├─ user.js                # gerenciamento dos usuários
-│   ├─ utils.js               # funções auxiliares
-│   └─ views.js               # menus e interfaces do bot
+│   ├─ telegram.js             # integração com o telegram
+│   ├─ user.js                 # gerenciamento dos usuários
+│   ├─ utils.js                # funções auxiliares
+│   └─ views.js                # menus e interfaces do bot
 │
-├─ .env                       # variáveis de ambiente
+├─ .env                        # variáveis de ambiente
 ├─ .gitattributes
 ├─ .gitignore
 ├─ LICENSE
 ├─ package-lock.json
 ├─ package.json
-└─ wrangler.toml              # configurações do cloudflare workers
+└─ wrangler.toml                # configurações do cloudflare workers
 ```
 
 ## ☁️ infraestrutura e funcionamento
@@ -77,7 +85,7 @@ a arquitetura do projeto é organizada em cinco etapas:
 
 1. **telegram:** recebe as mensagens dos usuários e encaminha as solicitações para o worker por meio de um webhook.
 2. **cloudflare workers:** recebe as mensagens, executa o `index.js` e coordena as operações do bot.
-3. **scrapers:** consultam as plataformas de recrutamento e seleção, como gupy e sólides para coletar as oportunidades disponíveis.
+3. **scrapers:** consultam as plataformas de recrutamento e seleção, como gupy, sólides, geekhunter, recrutei e trampos.co para coletar as oportunidades disponíveis.
 4. **cloudflare kv:** armazena as configurações e o histórico individual de cada usuário.
 5. **telegram:** recebe os resultados processados e realiza o envio das oportunidades aos usuários.
 
@@ -97,7 +105,7 @@ a arquitetura do projeto é organizada em cinco etapas:
               │
        ┌──────┴───────┐
        ▼              ▼
-    scrapers      cloudflare kv
+    scrapers     cloudflare kv
        │              │
        ▼              │
   plataformas         │
@@ -130,6 +138,7 @@ o menu principal apresenta um resumo das configurações atuais do usuário, inc
 - 📊 **limite por fonte:** apresenta a quantidade máxima de vagas por plataforma.
 - 🏠 **apenas remotas:** informa se o filtro de oportunidades remotas está ativado.
 - 🌐 **fontes:** apresenta as plataformas selecionadas para a busca.
+- 📍 **local:** exibe a localização configurada para a busca.
 - ✅ **termos incluídos:** exibe a quantidade de termos configurados para inclusão.
 - ❌ **termos excluídos:** exibe a quantidade de termos configurados para exclusão.
 
@@ -142,9 +151,10 @@ o menu também disponibiliza duas opções principais:
 
 o menu de configurações permite alterar individualmente as preferências de busca por meio de botões interativos:
 
+- 📍 **local:** permite definir a localização das oportunidades, utilizando uma cidade, cidade e estado ou um estado inteiro.
 - ⏰ **horário:** define o horário de envio automático das oportunidades.
 - 📊 **limite:** configura a quantidade máxima de vagas por fonte.
-- 🌐 **fontes:** permite selecionar as plataformas utilizadas na busca, como gupy e sólides.
+- 🌐 **fontes:** permite selecionar até duas plataformas entre gupy, sólides, geekhunter, recrutei e trampos.co.
 - 🏠 **remoto:** permite ativar ou desativar o filtro de vagas exclusivamente remotas.
 - ✅ **incluir:** gerencia os termos que devem ser considerados nas buscas.
 - ❌ **excluir:** gerencia os termos que devem ser ignorados.
@@ -162,9 +172,24 @@ os filtros permitem:
 - selecionar oportunidades por palavras-chave.
 - incluir termos que devem ser considerados nas buscas.
 - ignorar vagas que contenham determinados termos.
-- selecionar as fontes de oportunidades.
+- selecionar até duas fontes de oportunidades simultaneamente.
+- filtrar oportunidades por localização, utilizando cidade, estado ou estado inteiro.
 - priorizar oportunidades remotas.
 - limitar a quantidade de vagas recebidas por fonte.
+
+### 📍 filtro por localização
+
+o usuário pode configurar uma localização para direcionar a busca de oportunidades.
+
+são aceitos diferentes formatos:
+
+- cidade e estado: `São Paulo, SP`
+- cidade e estado: `Curitiba, PR`
+- estado inteiro: `SP`
+
+também é possível limpar a localização configurada, retornando à busca sem restrição geográfica, considerando todo o brasil.
+
+**observação:** quando o filtro de vagas exclusivamente remotas está ativado, a localização é ignorada. para utilizar o filtro geográfico, é necessário desativar a opção de vagas remotas.
 
 dessa forma, o bot consegue reduzir oportunidades que não correspondem aos critérios de busca configurados.
 
@@ -176,6 +201,8 @@ entre os dados armazenados estão:
 
 - configurações individuais de cada usuário.
 - preferências de busca.
+- localização configurada.
+- fontes de oportunidades selecionadas.
 - histórico de oportunidades enviadas.
 
 esse armazenamento permite manter as configurações e o histórico de cada usuário de forma independente, mesmo com a execução do bot na infraestrutura em nuvem.
