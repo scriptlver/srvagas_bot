@@ -4,8 +4,9 @@ import {
   RESULTADOS_TTL,
   RESULTADOS_POR_PAGINA,
 } from "./config.js";
-import { btn, dormir, normalizar, porData } from "./utils.js";
+import { btn, dormir, normalizar, porData, escaparHTML } from "./utils.js";
 import { fontesAtivas } from "./sources.js";
+import { formatarLocal } from "./local.js";
 import { getUser, saveUser } from "./user.js";
 import { say, editarMensagem } from "./telegram.js";
 import { criarTextoPagina, montarMensagens, tecladoPagina } from "./views.js";
@@ -91,6 +92,7 @@ export async function sendJobs(
         fonte.buscar({
           termos,
           remoto: user.remoto,
+          local: user.local,
           cache,
         }),
       ),
@@ -166,8 +168,15 @@ export async function sendJobs(
       timeZone: "UTC",
     });
 
+    const filtroLocal = user.remoto
+      ? "🏠 Apenas vagas remotas"
+      : user.local
+        ? `📍 ${escaparHTML(formatarLocal(user.local))}`
+        : "📍 Todo o Brasil";
+
     const resumo =
       `💼 <b>RELATÓRIO DE VAGAS — ${dataFormatada}</b>\n\n` +
+      `${filtroLocal}\n` +
       `📌 Encontramos <b>${novas.length} vagas</b> compatíveis com seus filtros.\n` +
       `📨 Enviamos <b>${selecionadas.length}</b> vagas, respeitando seu limite de ${user.count} por fonte.`;
 

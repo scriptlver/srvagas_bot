@@ -6,6 +6,7 @@ import {
   fontesAtivas,
   sanitizarFontes,
 } from "./sources.js";
+import { formatarLocal } from "./local.js";
 
 export const RULER = "⠀".repeat(34);
 
@@ -14,12 +15,17 @@ export function mainView(u) {
     .map((f) => f.chave)
     .join(" + ");
 
+  const localTexto = u.remoto
+    ? "ignorada (modo remoto)"
+    : escaparHTML(formatarLocal(u.local) || "Todo o Brasil");
+
   const text =
     `Olá${u.nome ? ` ${escaparHTML(u.nome)}` : ""} :)\n\n` +
     `⚙️ <b>PREFERÊNCIAS</b>\n` +
     `⏰ Horário de envio: ${String(u.hour).padStart(2, "0")}:00\n` +
     `📊 Limite por fonte: ${u.count} vagas\n` +
     `🏠 Apenas remotas: ${u.remoto ? "Sim" : "Não"}\n` +
+    `📍 Localização: ${localTexto}\n` +
     `🌐 Fontes: ${escaparHTML(fontes)}\n\n` +
     `🔎 <b>FILTROS DE BUSCA</b>\n` +
     `✅ Termos incluídos: ${u.include.length}\n` +
@@ -53,6 +59,7 @@ export function configView(u) {
       btn(`🌐 Fontes: ${fontesAtivas(u).length}/${MAX_FONTES}`, "src"),
       btn(`🏠 Remoto: ${u.remoto ? "Sim" : "Não"}`, "rem"),
     ],
+    [btn(`📍 Local: ${formatarLocal(u.local) || "qualquer"}`, "loc")],
     [
       btn(`✅ Incluir (${u.include.length})`, "inc"),
       btn(`❌ Excluir (${u.exclude.length})`, "exc"),
@@ -61,6 +68,30 @@ export function configView(u) {
   ];
 
   return { text, kb };
+}
+
+export function localView(u) {
+  const atual = formatarLocal(u.local) || "nenhuma (todo o Brasil)";
+  const aviso = u.remoto
+    ? "\n\n⚠️ O filtro <b>Apenas remotas</b> está ativo, então a localização é ignorada. Desative em Configurações para usá-la."
+    : "";
+
+  return {
+    text:
+      `📍 <b>Localização</b>\n\n` +
+      `Atual: <b>${escaparHTML(atual)}</b>\n\n` +
+      `Envie a cidade e/ou o estado. Exemplos:\n` +
+      `• <code>João Monlevade, MG</code>\n` +
+      `• <code>Curitiba, PR</code>\n` +
+      `• <code>SP</code>` +
+      aviso +
+      `\n\nPara cancelar, use /cancelar.\n` +
+      RULER,
+    kb: [
+      [btn("🗑️ Limpar localização", "loc:clr")],
+      [btn("⬅️ Voltar", "cfg")],
+    ],
+  };
 }
 
 export function fontesView(u) {

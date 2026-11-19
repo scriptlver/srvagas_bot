@@ -34,12 +34,20 @@ const LEGACY_EXCLUDE = [
 const mesmaLista = (a, b) =>
   a.length === b.length && [...a].sort().join("|") === [...b].sort().join("|");
 
+function sanitizarLocal(local) {
+  if (!local || typeof local !== "object") return null;
+  const cidade = typeof local.cidade === "string" ? local.cidade : "";
+  const estado = typeof local.estado === "string" ? local.estado : "";
+  return cidade || estado ? { cidade, estado } : null;
+}
+
 export const DEFAULTS = {
   nome: "",
   hour: 9,
   count: 25,
   tz: -3,
   remoto: true,
+  local: null, 
   fontes: [...FONTES_PADRAO],
   include: [],
   exclude: [],
@@ -77,6 +85,7 @@ export async function getUser(env, chatId) {
       ? salvo.exclude
       : [...DEFAULTS.exclude],
     fontes: sanitizarFontes(salvo.fontes),
+    local: sanitizarLocal(salvo.local),
     sentJobs: Number.isFinite(salvo.sentJobs) ? salvo.sentJobs : 0,
     sentMessages: Number.isFinite(salvo.sentMessages) ? salvo.sentMessages : 0,
   };

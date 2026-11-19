@@ -1,4 +1,5 @@
 import { dormir, normalizar } from "../utils.js";
+import { formatarLocal, bateLocal } from "../local.js";
 
 const URL_API = "https://vagas.solides.com.br/api/vacancies";
 const POR_PAGINA = 14;
@@ -32,16 +33,18 @@ function mapear(v) {
     link: v.id ? `https://vagas.solides.com.br/vaga/${v.id}` : null,
     fonte: "Solides",
     remoto,
+    cidade,
+    estado: uf,
     publicadaEm: v.createdAt ? new Date(v.createdAt) : null,
   };
 }
 
-async function buscarPagina(termo, pagina) {
+async function buscarPagina(termo, pagina, local) {
   const params = new URLSearchParams({
     page: String(pagina),
     take: String(POR_PAGINA),
     occupationAreas: "tecnologia",
-    locations: "",
+    locations: local ? formatarLocal(local) : "",
     title: termo,
   });
 
@@ -60,11 +63,11 @@ async function buscarPagina(termo, pagina) {
   };
 }
 
-async function buscarTermo(termo, remoto) {
+async function buscarTermo(termo, remoto, local) {
   const vagas = [];
 
   for (let pagina = 1; pagina <= PAGINAS; pagina++) {
-    const { lista, totalPaginas } = await buscarPagina(termo, pagina);
+    const { lista, totalPaginas } = await buscarPagina(termo, pagina, local);
     vagas.push(...lista.filter((v) => !v.isDisabled).map(mapear));
 
     if (!lista.length || pagina >= totalPaginas) break;
@@ -72,21 +75,27 @@ async function buscarTermo(termo, remoto) {
   }
 
   const comLink = vagas.filter((v) => v.link);
-  return remoto ? comLink.filter((v) => v.remoto) : comLink;
+  return remoto
+    ? comLink.filter((v) => v.remoto)
+    : comLink.filter((v) => bateLocal(v, local));
 }
 
 export async function buscarSolides({
   termos = [],
   remoto = true,
+  local = null,
   cache = new Map(),
 } = {}) {
+  const localEfetivo = remoto ? null : local;
+  const chaveLocal = formatarLocal(localEfetivo);
+
   const listas = await Promise.all(
     termos.map(async (termo) => {
-      const chave = `solides|${termo}|${remoto}`;
+      const chave = `solides|${termo}|${remoto}|${chaveLocal}`;
       if (cache.has(chave)) return cache.get(chave);
 
       try {
-        const vagas = await buscarTermo(termo, remoto);
+        const vagas = await buscarTermo(termo, remoto, localEfetivo);
         console.log(`Solides "${termo}": ${vagas.length} vagas`);
         cache.set(chave, vagas);
         return vagas;
