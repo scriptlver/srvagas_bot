@@ -88,7 +88,6 @@ async function onCallback(env, callback) {
 
   const data = callback.data || '';
 
-  // O toggle de fontes responde o callback por conta própria (pode mostrar um alerta)
   if (!data.startsWith('s:')) {
     await tg(env, 'answerCallbackQuery', { callback_query_id: callback.id });
   }
@@ -156,7 +155,6 @@ async function onCallback(env, callback) {
       novas = [...atuais, chave];
     }
 
-    // Mantém a ordem definida em FONTES
     user.fontes = CHAVES_FONTES.filter((c) => novas.includes(c));
 
     await tg(env, 'answerCallbackQuery', { callback_query_id: callback.id });

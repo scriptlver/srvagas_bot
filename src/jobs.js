@@ -177,7 +177,6 @@ export async function sendJobs(env, user, { manual = false, cache = new Map() } 
       }
     }
 
-    // Relatório enviado por último, depois de todas as vagas
     await say(
       env,
       user.chatId,

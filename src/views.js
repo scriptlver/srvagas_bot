@@ -2,7 +2,6 @@ import { LIMITE, RESULTADOS_POR_PAGINA } from './config.js';
 import { btn, escaparHTML, fmtTz } from './utils.js';
 import { FONTES, MAX_FONTES, fontesAtivas, sanitizarFontes } from './sources.js';
 
-// Caracteres invisíveis (Braille blank): forçam o balão a ocupar a largura toda
 export const RULER = '⠀'.repeat(34);
 
 export function mainView(u) {
