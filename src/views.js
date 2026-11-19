@@ -1,31 +1,38 @@
-import { LIMITE, RESULTADOS_POR_PAGINA } from './config.js';
-import { btn, escaparHTML, fmtTz } from './utils.js';
-import { FONTES, MAX_FONTES, fontesAtivas, sanitizarFontes } from './sources.js';
+import { LIMITE, RESULTADOS_POR_PAGINA } from "./config.js";
+import { btn, escaparHTML, fmtTz } from "./utils.js";
+import {
+  FONTES,
+  MAX_FONTES,
+  fontesAtivas,
+  sanitizarFontes,
+} from "./sources.js";
 
-// Caracteres invisíveis (Braille blank): forçam o balão a ocupar a largura toda
-export const RULER = '⠀'.repeat(34);
+export const RULER = "⠀".repeat(34);
 
 export function mainView(u) {
-  const fontes = fontesAtivas(u).map((f) => f.chave).join(' + ');
+  const fontes = fontesAtivas(u)
+    .map((f) => f.chave)
+    .join(" + ");
 
   const text =
-    `Olá${u.nome ? ` ${escaparHTML(u.nome)}` : ''}! como vai? 😊\n\n` +
-
-    `⚙️ <b>Suas preferências</b>\n` +
-    `⏰ Horário de envio das vagas: ${String(u.hour).padStart(2, '0')}:00\n` +
+    `Olá${u.nome ? ` ${escaparHTML(u.nome)}` : ""} :)\n\n` +
+    `⚙️ <b>PREFERÊNCIAS</b>\n` +
+    `⏰ Horário de envio: ${String(u.hour).padStart(2, "0")}:00\n` +
     `📊 Limite por fonte: ${u.count} vagas\n` +
-    `🏠 Apenas vagas remotas: ${u.remoto ? 'Sim' : 'Não'}\n` +
-    `🌐 Fontes: ${escaparHTML(fontes)}\n` +
-    RULER + '\n' +
-    `🔎 <b>Seus filtros de busca</b>\n` +
+    `🏠 Apenas remotas: ${u.remoto ? "Sim" : "Não"}\n` +
+    `🌐 Fontes: ${escaparHTML(fontes)}\n\n` +
+    `🔎 <b>FILTROS DE BUSCA</b>\n` +
     `✅ Termos incluídos: ${u.include.length}\n` +
     `❌ Termos excluídos: ${u.exclude.length}\n\n` +
-
-    `Escolha uma opção abaixo:\n`;
+    (u.include.length
+      ? ""
+      : `⚠️ Você ainda não definiu termos de busca. Vá em Configurações → Incluir.\n\n`) +
+    `Escolha uma opção para configurar o bot:\n` +
+    RULER;
 
   const kb = [
-    [btn('🔎 Buscar vagas agora', 'now')],
-    [btn('⚙️ Configurações', 'cfg')],
+    [btn("🔎 Buscar vagas agora", "now")],
+    [btn("⚙️ Configurações", "cfg")],
   ];
 
   return { text, kb };
@@ -39,19 +46,18 @@ export function configView(u) {
 
   const kb = [
     [
-      btn(`⏰ Horário: ${String(u.hour).padStart(2, '0')}:00`, 'hour'),
-      btn(`📊 Limite: ${u.count}`, 'count'),
+      btn(`⏰ Horário: ${String(u.hour).padStart(2, "0")}:00`, "hour"),
+      btn(`📊 Limite: ${u.count}`, "count"),
     ],
     [
-      btn(`🌐 Fontes: ${fontesAtivas(u).length}/${MAX_FONTES}`, 'src'),
-      btn(`🏠 Remoto: ${u.remoto ? 'Sim' : 'Não'}`, 'rem'),
+      btn(`🌐 Fontes: ${fontesAtivas(u).length}/${MAX_FONTES}`, "src"),
+      btn(`🏠 Remoto: ${u.remoto ? "Sim" : "Não"}`, "rem"),
     ],
     [
-      btn(`✅ Incluir (${u.include.length})`, 'inc'),
-      btn(`❌ Excluir (${u.exclude.length})`, 'exc'),
+      btn(`✅ Incluir (${u.include.length})`, "inc"),
+      btn(`❌ Excluir (${u.exclude.length})`, "exc"),
     ],
-    [btn('🧹 Limpar histórico', 'reset')],
-    [btn('⬅️ Voltar', 'menu')],
+    [btn("⬅️ Voltar", "menu")],
   ];
 
   return { text, kb };
@@ -69,12 +75,12 @@ export function fontesView(u) {
 
   const kb = FONTES.map((fonte) => [
     btn(
-      `${selecionadas.includes(fonte.chave) ? '✅' : '⬜'} ${fonte.emoji} ${fonte.chave}`,
+      `${selecionadas.includes(fonte.chave) ? "✅" : "⬜"} ${fonte.emoji} ${fonte.chave}`,
       `s:${fonte.chave}`,
     ),
   ]);
 
-  kb.push([btn('⬅️ Voltar', 'cfg')]);
+  kb.push([btn("⬅️ Voltar", "cfg")]);
 
   return { text, kb };
 }
@@ -87,17 +93,17 @@ export function hourView(u) {
       Array.from({ length: 4 }, (_, i) => {
         const hour = h + i;
         return btn(
-          `${String(hour).padStart(2, '0')}:00${u.hour === hour ? ' ✓' : ''}`,
+          `${String(hour).padStart(2, "0")}:00${u.hour === hour ? " ✓" : ""}`,
           `h:${hour}`,
         );
       }),
     );
   }
 
-  rows.push([btn('⬅️ Voltar', 'cfg')]);
+  rows.push([btn("⬅️ Voltar", "cfg")]);
 
   return {
-    text: '⏰ <b>Horário do envio automático</b>\n\nEscolha a hora em que deseja receber as vagas.',
+    text: "⏰ <b>Horário do envio automático</b>\n\nEscolha a hora em que deseja receber as vagas.",
     kb: rows,
   };
 }
@@ -106,11 +112,15 @@ export function countView(u) {
   const values = [5, 10, 15, 20, 25, 30, 40, 50];
 
   return {
-    text: '📊 <b>Quantidade de vagas</b>\n\nEscolha o limite de vagas por fonte em cada busca.',
+    text: "📊 <b>Quantidade de vagas</b>\n\nEscolha o limite de vagas por fonte em cada busca.",
     kb: [
-      values.slice(0, 4).map((n) => btn(`${n}${u.count === n ? ' ✓' : ''}`, `c:${n}`)),
-      values.slice(4).map((n) => btn(`${n}${u.count === n ? ' ✓' : ''}`, `c:${n}`)),
-      [btn('⬅️ Voltar', 'cfg')],
+      values
+        .slice(0, 4)
+        .map((n) => btn(`${n}${u.count === n ? " ✓" : ""}`, `c:${n}`)),
+      values
+        .slice(4)
+        .map((n) => btn(`${n}${u.count === n ? " ✓" : ""}`, `c:${n}`)),
+      [btn("⬅️ Voltar", "cfg")],
     ],
   };
 }
@@ -123,41 +133,37 @@ export function tzView(u) {
 
     for (let offset = 0; offset < 3 && tz + offset <= 14; offset++) {
       const value = tz + offset;
-      row.push(btn(
-        `${fmtTz(value)}${u.tz === value ? ' ✓' : ''}`,
-        `z:${value}`,
-      ));
+      row.push(
+        btn(`${fmtTz(value)}${u.tz === value ? " ✓" : ""}`, `z:${value}`),
+      );
     }
 
     rows.push(row);
   }
 
-  rows.push([btn('⬅️ Voltar', 'cfg')]);
+  rows.push([btn("⬅️ Voltar", "cfg")]);
 
   return {
-    text: '🌎 <b>Fuso horário</b>\n\nEscolha o fuso horário usado para calcular o horário dos envios.',
+    text: "🌎 <b>Fuso horário</b>\n\nEscolha o fuso horário usado para calcular o horário dos envios.",
     kb: rows,
   };
 }
 
 export function termsView(u, kind) {
-  const incluir = kind === 'include';
+  const incluir = kind === "include";
   const termos = u[kind];
 
   const lista = termos.length
-    ? termos.map((t) => `• ${escaparHTML(t)}`).join('\n')
-    : 'Nenhum termo cadastrado.';
+    ? termos.map((t) => `• ${escaparHTML(t)}`).join("\n")
+    : "Nenhum termo cadastrado.";
 
   return {
     text:
-      `${incluir ? '✅' : '❌'} <b>${incluir ? 'Termos incluídos' : 'Termos excluídos'}</b>\n\n` +
+      `${incluir ? "✅" : "❌"} <b>${incluir ? "Termos incluídos" : "Termos excluídos"}</b>\n\n` +
       `${lista}\n\n` +
       `Envie os termos separados por vírgula ou em linhas diferentes.\n` +
       `Para cancelar, use /cancelar.`,
-    kb: [
-      [btn('🗑️ Limpar termos', `clr:${kind}`)],
-      [btn('⬅️ Voltar', 'cfg')],
-    ],
+    kb: [[btn("🗑️ Limpar termos", `clr:${kind}`)], [btn("⬅️ Voltar", "cfg")]],
   };
 }
 
@@ -166,7 +172,7 @@ export function montarMensagens(fonte, emoji, vagas) {
 
   const cabecalho = (parte, total) =>
     `${emoji} <b>Vagas ${escaparHTML(fonte)}</b> (${vagas.length})` +
-    `${total > 1 ? ` - parte ${parte}` : ''}\n\n`;
+    `${total > 1 ? ` - parte ${parte}` : ""}\n\n`;
 
   const grupos = [];
   let atual = [];
@@ -174,7 +180,7 @@ export function montarMensagens(fonte, emoji, vagas) {
 
   for (const vaga of vagas) {
     const bloco =
-      `👩‍💻 ${escaparHTML(vaga.titulo || vaga.nome || 'Vaga')}\n` +
+      `👩‍💻 ${escaparHTML(vaga.titulo || vaga.nome || "Vaga")}\n` +
       `🔗 <a href="${escaparHTML(vaga.link)}">Ver vaga</a>\n\n`;
 
     if (tamanho + bloco.length > LIMITE && atual.length) {
@@ -192,7 +198,7 @@ export function montarMensagens(fonte, emoji, vagas) {
   return grupos.map((grupo, index) => ({
     texto:
       cabecalho(index + 1, grupos.length) +
-      grupo.map((item) => item.bloco).join(''),
+      grupo.map((item) => item.bloco).join(""),
     vagas: grupo.map((item) => item.vaga),
   }));
 }
@@ -204,9 +210,9 @@ export function criarTextoPagina(vagas, pagina, total) {
 
   const linhas = itens.map((vaga, index) => {
     const numero = inicio + index + 1;
-    const fonte = vaga.fonte ? ` <i>(${escaparHTML(vaga.fonte)})</i>` : '';
+    const fonte = vaga.fonte ? ` <i>(${escaparHTML(vaga.fonte)})</i>` : "";
     return (
-      `<b>${numero}. ${escaparHTML(vaga.titulo || vaga.nome || 'Vaga')}</b>${fonte}\n` +
+      `<b>${numero}. ${escaparHTML(vaga.titulo || vaga.nome || "Vaga")}</b>${fonte}\n` +
       `🔗 <a href="${escaparHTML(vaga.link)}">Ver vaga</a>`
     );
   });
@@ -215,7 +221,7 @@ export function criarTextoPagina(vagas, pagina, total) {
     texto:
       `💡 <b>Vagas adicionais encontradas</b>\n` +
       `Mostrando ${inicio + 1}–${Math.min(inicio + itens.length, total)} de ${total}\n\n` +
-      linhas.join('\n\n'),
+      linhas.join("\n\n"),
     totalPaginas,
   };
 }
@@ -223,11 +229,12 @@ export function criarTextoPagina(vagas, pagina, total) {
 export function tecladoPagina(id, pagina, totalPaginas) {
   const botoes = [];
 
-  if (pagina > 0) botoes.push(btn('⬅️ Anterior', `all:${id}:${pagina - 1}`));
-  if (pagina + 1 < totalPaginas) botoes.push(btn('Próxima ➡️', `all:${id}:${pagina + 1}`));
+  if (pagina > 0) botoes.push(btn("⬅️ Anterior", `all:${id}:${pagina - 1}`));
+  if (pagina + 1 < totalPaginas)
+    botoes.push(btn("Próxima ➡️", `all:${id}:${pagina + 1}`));
 
   return [
     ...(botoes.length ? [botoes] : []),
-    [btn('↩️ Voltar ao relatório', `all:${id}:back`)],
+    [btn("↩️ Voltar ao relatório", `all:${id}:back`)],
   ];
 }

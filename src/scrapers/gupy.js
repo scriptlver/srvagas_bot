@@ -1,15 +1,16 @@
-import { dormir, normalizar } from '../utils.js';
+import { dormir, normalizar } from "../utils.js";
 
-const URL_API = 'https://portal.gupy.io/api/job-search/jobs';
+const URL_API = "https://portal.gupy.io/api/job-search/jobs";
 const POR_PAGINA = 12;
 const PAGINAS = 3;
 const MAX_VAGAS = 100;
 const PAUSA_MS = 200;
 
 const HEADERS = {
-  'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/120 Safari/537.36',
-  Accept: 'application/json',
-  Referer: 'https://portal.gupy.io/job-search',
+  "User-Agent":
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/120 Safari/537.36",
+  Accept: "application/json",
+  Referer: "https://portal.gupy.io/job-search",
 };
 
 function extrairLista(data) {
@@ -22,22 +23,28 @@ function extrairLista(data) {
 
 function ehRemoto(v) {
   if (v.isRemoteWork === true || v.remote === true) return true;
-  return normalizar(v.workplaceType || v.workModel || v.modality).includes('remot');
+  return normalizar(v.workplaceType || v.workModel || v.modality).includes(
+    "remot",
+  );
 }
 
 function mapear(v) {
-  const nome = v.name || v.title || '(sem título)';
-  const empresa = v.careerPageName || v.company || v.companyName || '';
-  const local = v.city ? ` (${v.city}/${v.state || ''})` : '';
-  const link = v.jobUrl || v.url || v.applyUrl || (v.id ? `https://portal.gupy.io/job/${v.id}` : null);
+  const nome = v.name || v.title || "(sem título)";
+  const empresa = v.careerPageName || v.company || v.companyName || "";
+  const local = v.city ? ` (${v.city}/${v.state || ""})` : "";
+  const link =
+    v.jobUrl ||
+    v.url ||
+    v.applyUrl ||
+    (v.id ? `https://portal.gupy.io/job/${v.id}` : null);
   const dataStr = v.publishedDate || v.publishedAt || v.createdAt || null;
   const remoto = ehRemoto(v);
 
   return {
     nome,
-    titulo: `${nome}${empresa ? ` - ${empresa}` : ''}${local}${remoto ? ' [remoto]' : ''}`,
+    titulo: `${nome}${empresa ? ` - ${empresa}` : ""}${local}${remoto ? " [remoto]" : ""}`,
     link,
-    fonte: 'Gupy',
+    fonte: "Gupy",
     remoto,
     publicadaEm: dataStr ? new Date(dataStr) : null,
   };
@@ -48,16 +55,16 @@ async function buscarPagina(termo, offset, estado) {
     jobName: termo,
     limit: String(POR_PAGINA),
     offset: String(offset),
-    sortBy: 'publishedDate',
+    sortBy: "publishedDate",
   });
 
-  if (estado.filtroServidor) params.set('workplaceTypes[]', 'remote');
+  if (estado.filtroServidor) params.set("workplaceType", "remote");
 
   const response = await fetch(`${URL_API}?${params}`, { headers: HEADERS });
 
   if (!response.ok) {
     if (estado.filtroServidor && response.status === 400) {
-      console.log('Gupy recusou o filtro remoto; usando filtro local.');
+      console.log("Gupy recusou o filtro remoto; usando filtro local.");
       estado.filtroServidor = false;
       return buscarPagina(termo, offset, estado);
     }
@@ -72,13 +79,7 @@ async function buscarTermo(termo, remoto) {
   const vagas = [];
 
   for (let pagina = 0; pagina < PAGINAS; pagina++) {
-    let lista = await buscarPagina(termo, pagina * POR_PAGINA, estado);
-
-    if (pagina === 0 && lista.length === 0 && estado.filtroServidor) {
-      console.log('Gupy não retornou vagas remotas; tentando sem o filtro remoto.');
-      estado.filtroServidor = false;
-      lista = await buscarPagina(termo, 0, estado);
-    }
+    const lista = await buscarPagina(termo, pagina * POR_PAGINA, estado);
 
     vagas.push(...lista.map(mapear));
 
@@ -90,7 +91,11 @@ async function buscarTermo(termo, remoto) {
   return remoto ? comLink.filter((vaga) => vaga.remoto) : comLink;
 }
 
-export async function buscarGupy({ termos = [], remoto = true, cache = new Map() } = {}) {
+export async function buscarGupy({
+  termos = [],
+  remoto = true,
+  cache = new Map(),
+} = {}) {
   const listas = await Promise.all(
     termos.map(async (termo) => {
       const chave = `gupy|${termo}|${remoto}`;
@@ -112,6 +117,9 @@ export async function buscarGupy({ termos = [], remoto = true, cache = new Map()
   listas.flat().forEach((vaga) => porLink.set(vaga.link, vaga));
 
   return [...porLink.values()]
-    .sort((a, b) => (b.publicadaEm?.getTime() || 0) - (a.publicadaEm?.getTime() || 0))
+    .sort(
+      (a, b) =>
+        (b.publicadaEm?.getTime() || 0) - (a.publicadaEm?.getTime() || 0),
+    )
     .slice(0, MAX_VAGAS);
 }
