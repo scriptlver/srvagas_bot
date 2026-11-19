@@ -4,8 +4,9 @@ import {
   RESULTADOS_TTL,
   RESULTADOS_POR_PAGINA,
 } from "./config.js";
-import { btn, dormir, normalizar, porData } from "./utils.js";
+import { btn, dormir, normalizar, porData, escaparHTML } from "./utils.js";
 import { fontesAtivas } from "./sources.js";
+import { formatarLocal } from "./local.js";
 import { getUser, saveUser } from "./user.js";
 import { say, editarMensagem } from "./telegram.js";
 import { criarTextoPagina, montarMensagens, tecladoPagina } from "./views.js";
@@ -75,26 +76,38 @@ export async function sendJobs(
   { manual = false, cache = new Map() } = {},
 ) {
   if (!user.include.length) {
-    return say(
-      env,
-      user.chatId,
-      "Você ainda não definiu termos para buscar. Use /menu → ✅ Incluir termos.",
-    );
+    if (manual) {
+      await say(
+        env,
+        user.chatId,
+        "Você ainda não definiu termos para buscar. Use /menu → ✅ Incluir termos.",
+      );
+    }
+    return true;
   }
 
   try {
     const termos = user.include.slice(0, MAX_TERMOS);
     const fontes = fontesAtivas(user);
 
+    if (!fontes.length) {
+      throw new Error("Nenhuma fonte de vagas está ativa.");
+    }
+
     const resultados = await Promise.allSettled(
       fontes.map((fonte) =>
         fonte.buscar({
           termos,
           remoto: user.remoto,
+          local: user.local,
           cache,
         }),
       ),
     );
+
+    if (resultados.every((resultado) => resultado.status === "rejected")) {
+      throw new Error("Todas as fontes de vagas falharam.");
+    }
 
     const todas = [];
 
@@ -146,7 +159,7 @@ export async function sendJobs(
           "😕 Nenhuma vaga encontrada com esses filtros agora.",
         );
       }
-      return;
+      return true;
     }
 
     const selecionadas = [];
@@ -166,8 +179,15 @@ export async function sendJobs(
       timeZone: "UTC",
     });
 
+    const filtroLocal = user.remoto
+      ? "🏠 Apenas vagas remotas"
+      : user.local
+        ? `📍 ${escaparHTML(formatarLocal(user.local))}`
+        : "📍 Todo o Brasil";
+
     const resumo =
       `💼 <b>RELATÓRIO DE VAGAS — ${dataFormatada}</b>\n\n` +
+      `${filtroLocal}\n` +
       `📌 Encontramos <b>${novas.length} vagas</b> compatíveis com seus filtros.\n` +
       `📨 Enviamos <b>${selecionadas.length}</b> vagas, respeitando seu limite de ${user.count} por fonte.`;
 
@@ -220,8 +240,13 @@ export async function sendJobs(
           : "\n\nVocê recebeu todas as vagas encontradas dentro do seu limite."),
       tecladoResumo ? { reply_markup: tecladoResumo } : {},
     );
+
+    return true;
   } catch (error) {
-    console.log("Erro ao buscar vagas:", error);
+    console.log(
+      `Erro ao buscar vagas para ${user.chatId}:`,
+      error?.stack || String(error),
+    );
 
     if (manual) {
       await say(
@@ -230,40 +255,106 @@ export async function sendJobs(
         "⚠️ Ocorreu um erro durante a busca. Tente novamente mais tarde.",
       ).catch(() => {});
     }
+
+    return false;
   } finally {
     await saveUser(env, user);
   }
 }
 
-export async function runCron(env) {
-  const agora = Date.now();
+export async function runCron(env, scheduledAt = Date.now()) {
+  const agora = Number(scheduledAt) || Date.now();
   const cache = new Map();
+
   let cursor;
+  let encontrados = 0;
+  let processados = 0;
+  let ignorados = 0;
+  let falhas = 0;
 
-  do {
-    const pagina = await env.KV.list({ prefix: "u:", cursor, limit: 1000 });
+  console.log(`Cron iniciado: ${new Date(agora).toISOString()}`);
 
-    for (const item of pagina.keys) {
-      try {
-        const user = await getUser(env, item.name.slice(2));
+  try {
+    do {
+      const pagina = await env.KV.list({
+        prefix: "u:",
+        ...(cursor ? { cursor } : {}),
+        limit: 1000,
+      });
 
-        if (user.paused || !user.include.length) continue;
+      for (const item of pagina.keys || []) {
+        encontrados++;
 
-        const horarioLocal = new Date(agora + user.tz * 3600000);
-        const data = horarioLocal.toISOString().slice(0, 10);
+        try {
+          const user = await getUser(env, item.name.slice(2));
 
-        if (horarioLocal.getUTCHours() !== user.hour) continue;
-        if (user.lastRun === data) continue;
+          if (user.paused || !user.include.length) {
+            ignorados++;
+            continue;
+          }
 
-        user.lastRun = data;
-        await saveUser(env, user);
+          const horarioLocal = new Date(agora + user.tz * 3600000);
 
-        await sendJobs(env, user, { cache });
-      } catch (error) {
-        console.log("Erro no cron:", item.name, String(error));
+          const hora = horarioLocal.getUTCHours();
+
+          if (hora !== user.hour) {
+            ignorados++;
+            continue;
+          }
+
+          const slotExecucao = new Date(agora).toISOString().slice(0, 13);
+
+          if (user.lastRunSlot === slotExecucao) {
+            ignorados++;
+            continue;
+          }
+
+          console.log(
+            `Usuário elegível: ${user.chatId} | ` +
+              `Horário: ${user.hour} | Fuso: UTC${user.tz}`,
+          );
+
+          const sucesso = await sendJobs(env, user, { cache });
+
+          if (!sucesso) {
+            falhas++;
+            console.log(
+              `Falha no envio para ${user.chatId}. Será necessário reprocessar.`,
+            );
+            continue;
+          }
+
+          user.lastRunSlot = slotExecucao;
+          await saveUser(env, user);
+
+          processados++;
+
+          console.log(`Usuário processado com sucesso: ${user.chatId}`);
+        } catch (error) {
+          falhas++;
+
+          console.log(
+            `Erro no cron para ${item.name}:`,
+            error?.stack || String(error),
+          );
+        }
       }
-    }
 
-    cursor = pagina.list_complete ? undefined : pagina.cursor;
-  } while (cursor);
+      cursor = pagina.list_complete ? undefined : pagina.cursor;
+
+      if (!pagina.list_complete && !cursor) {
+        throw new Error("KV informou listagem incompleta sem cursor.");
+      }
+    } while (cursor);
+  } catch (error) {
+    console.log("Erro geral no Cron:", error?.stack || String(error));
+
+    throw error;
+  } finally {
+    console.log(
+      `Cron finalizado | Encontrados: ${encontrados} | ` +
+        `Processados: ${processados} | Ignorados: ${ignorados} | ` +
+        `Falhas: ${falhas}`,
+    );
+  }
 }

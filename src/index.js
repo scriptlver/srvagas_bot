@@ -2,6 +2,7 @@ import { addTerms, parseTerms } from "./utils.js";
 import { CHAVES_FONTES, MAX_FONTES, sanitizarFontes } from "./sources.js";
 import { getUser, saveUser } from "./user.js";
 import { tg, say, editarMensagem } from "./telegram.js";
+import { parseLocal } from "./local.js";
 import {
   mainView,
   configView,
@@ -10,6 +11,7 @@ import {
   countView,
   tzView,
   termsView,
+  localView,
 } from "./views.js";
 import { sendJobs, runCron, mostrarPaginaRestantes } from "./jobs.js";
 
@@ -66,6 +68,27 @@ async function onMessage(env, mensagem) {
       return mostrarMenu();
     }
 
+    if (comando === "/local") {
+      if (!argumento) {
+        user.awaiting = "local";
+        await saveUser(env, user);
+        const view = localView(user);
+        return say(env, chatId, view.text, {
+          reply_markup: { inline_keyboard: view.kb },
+        });
+      }
+
+      const local = parseLocal(argumento);
+      if (!local) {
+        return say(env, chatId, "Não entendi. Ex: Belo Horizonte, MG");
+      }
+
+      user.local = local;
+      user.awaiting = null;
+      await saveUser(env, user);
+      return mostrarMenu("📍 Localização salva!\n\n");
+    }
+
     if (comando === "/cancelar") {
       user.awaiting = null;
       await saveUser(env, user);
@@ -75,7 +98,19 @@ async function onMessage(env, mensagem) {
     return;
   }
 
-  if (user.awaiting) {
+  if (user.awaiting === "local") {
+    const local = parseLocal(texto);
+    if (!local) {
+      return say(env, chatId, "Não entendi. Ex: Belo Horizonte, MG");
+    }
+
+    user.local = local;
+    user.awaiting = null;
+    await saveUser(env, user);
+    return mostrarMenu("📍 Localização salva!\n\n");
+  }
+
+  if (user.awaiting === "include" || user.awaiting === "exclude") {
     addTerms(user[user.awaiting], parseTerms(texto));
     user.awaiting = null;
     await saveUser(env, user);
@@ -182,6 +217,13 @@ async function onCallback(env, callback) {
     if (!Number.isInteger(timezone) || timezone < -12 || timezone > 14) return;
     user.tz = timezone;
     view = configView(user);
+  } else if (data === "loc") {
+    user.awaiting = "local";
+    view = localView(user);
+  } else if (data === "loc:clr") {
+    user.local = null;
+    user.awaiting = "local";
+    view = localView(user);
   } else if (data === "inc" || data === "exc") {
     const tipo = data === "inc" ? "include" : "exclude";
     user.awaiting = tipo;
@@ -233,6 +275,7 @@ export default {
         commands: [
           { command: "menu", description: "Abrir configurações" },
           { command: "buscar", description: "Buscar vagas agora" },
+          { command: "local", description: "Definir localização das vagas" },
           { command: "incluir", description: "Adicionar termos de busca" },
           { command: "excluir", description: "Adicionar termos a excluir" },
           { command: "cancelar", description: "Cancelar operação atual" },
@@ -273,7 +316,14 @@ export default {
     return new Response("vagas-bot ok");
   },
 
-  async scheduled(_event, env, ctx) {
-    ctx.waitUntil(runCron(env));
+  async scheduled(event, env, ctx) {
+    ctx.waitUntil(
+      runCron(env, event.scheduledTime).catch((error) => {
+        console.log(
+          "Falha na execução do Cron:",
+          error?.stack || String(error),
+        );
+      }),
+    );
   },
 };

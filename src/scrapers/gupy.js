@@ -1,4 +1,5 @@
 import { dormir, normalizar } from "../utils.js";
+import { UFS, formatarLocal, bateLocal } from "../local.js";
 
 const URL_API = "https://portal.gupy.io/api/job-search/jobs";
 const POR_PAGINA = 12;
@@ -46,11 +47,13 @@ function mapear(v) {
     link,
     fonte: "Gupy",
     remoto,
+    cidade: v.city || "",
+    estado: v.state || "",
     publicadaEm: dataStr ? new Date(dataStr) : null,
   };
 }
 
-async function buscarPagina(termo, offset, estado) {
+async function buscarPagina(termo, offset, estado, local) {
   const params = new URLSearchParams({
     jobName: termo,
     limit: String(POR_PAGINA),
@@ -59,6 +62,8 @@ async function buscarPagina(termo, offset, estado) {
   });
 
   if (estado.filtroServidor) params.set("workplaceType", "remote");
+  if (local?.cidade) params.set("city", local.cidade);
+  if (local?.estado) params.set("state", UFS[local.estado]);
 
   const response = await fetch(`${URL_API}?${params}`, { headers: HEADERS });
 
@@ -66,7 +71,7 @@ async function buscarPagina(termo, offset, estado) {
     if (estado.filtroServidor && response.status === 400) {
       console.log("Gupy recusou o filtro remoto; usando filtro local.");
       estado.filtroServidor = false;
-      return buscarPagina(termo, offset, estado);
+      return buscarPagina(termo, offset, estado, local);
     }
     throw new Error(`Gupy HTTP ${response.status}`);
   }
@@ -74,12 +79,12 @@ async function buscarPagina(termo, offset, estado) {
   return extrairLista(await response.json());
 }
 
-async function buscarTermo(termo, remoto) {
+async function buscarTermo(termo, remoto, local) {
   const estado = { filtroServidor: remoto };
   const vagas = [];
 
   for (let pagina = 0; pagina < PAGINAS; pagina++) {
-    const lista = await buscarPagina(termo, pagina * POR_PAGINA, estado);
+    const lista = await buscarPagina(termo, pagina * POR_PAGINA, estado, local);
 
     vagas.push(...lista.map(mapear));
 
@@ -88,21 +93,27 @@ async function buscarTermo(termo, remoto) {
   }
 
   const comLink = vagas.filter((vaga) => vaga.link);
-  return remoto ? comLink.filter((vaga) => vaga.remoto) : comLink;
+  return remoto
+    ? comLink.filter((vaga) => vaga.remoto)
+    : comLink.filter((vaga) => bateLocal(vaga, local));
 }
 
 export async function buscarGupy({
   termos = [],
   remoto = true,
+  local = null,
   cache = new Map(),
 } = {}) {
+  const localEfetivo = remoto ? null : local;
+  const chaveLocal = formatarLocal(localEfetivo);
+
   const listas = await Promise.all(
     termos.map(async (termo) => {
-      const chave = `gupy|${termo}|${remoto}`;
+      const chave = `gupy|${termo}|${remoto}|${chaveLocal}`;
       if (cache.has(chave)) return cache.get(chave);
 
       try {
-        const vagas = await buscarTermo(termo, remoto);
+        const vagas = await buscarTermo(termo, remoto, localEfetivo);
         console.log(`Gupy "${termo}": ${vagas.length} vagas`);
         cache.set(chave, vagas);
         return vagas;

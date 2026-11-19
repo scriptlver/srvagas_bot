@@ -6,6 +6,7 @@ import {
   fontesAtivas,
   sanitizarFontes,
 } from "./sources.js";
+import { formatarLocal } from "./local.js";
 
 export const RULER = "⠀".repeat(34);
 
@@ -14,12 +15,17 @@ export function mainView(u) {
     .map((f) => f.chave)
     .join(" + ");
 
+  const localTexto = u.remoto
+    ? "ignorada (modo remoto)"
+    : escaparHTML(formatarLocal(u.local) || "Todo o Brasil");
+
   const text =
     `Olá${u.nome ? ` ${escaparHTML(u.nome)}` : ""} :)\n\n` +
     `⚙️ <b>PREFERÊNCIAS</b>\n` +
     `⏰ Horário de envio: ${String(u.hour).padStart(2, "0")}:00\n` +
     `📊 Limite por fonte: ${u.count} vagas\n` +
     `🏠 Apenas remotas: ${u.remoto ? "Sim" : "Não"}\n` +
+    `📍 Localização: ${localTexto}\n` +
     `🌐 Fontes: ${escaparHTML(fontes)}\n\n` +
     `🔎 <b>FILTROS DE BUSCA</b>\n` +
     `✅ Termos incluídos: ${u.include.length}\n` +
@@ -45,6 +51,7 @@ export function configView(u) {
     RULER;
 
   const kb = [
+    [btn(`📍 Local: ${formatarLocal(u.local) || "qualquer"}`, "loc")],
     [
       btn(`⏰ Horário: ${String(u.hour).padStart(2, "0")}:00`, "hour"),
       btn(`📊 Limite: ${u.count}`, "count"),
@@ -61,6 +68,27 @@ export function configView(u) {
   ];
 
   return { text, kb };
+}
+
+export function localView(u) {
+  const atual = formatarLocal(u.local) || "nenhuma (todo o Brasil)";
+  const aviso = u.remoto
+    ? "\n\n⚠️ O filtro <b>Apenas remotas</b> está ativo, então a localização é ignorada. Desative em Configurações para usá-la."
+    : "";
+
+  return {
+    text:
+      `📍 <b>Localização</b>\n\n` +
+      `Atual: <b>${escaparHTML(atual)}</b>\n\n` +
+      `Envie a cidade e/ou o estado. Exemplos:\n` +
+      `• <code>São Paulo, SP</code>\n` +
+      `• <code>Curitiba, PR</code>\n` +
+      `• <code>ou para um estado inteiro, apenas "SP"</code>` +
+      aviso +
+      `\n\nPara cancelar, use /cancelar.\n` +
+      RULER,
+    kb: [[btn("🗑️ Limpar localização", "loc:clr")], [btn("⬅️ Voltar", "cfg")]],
+  };
 }
 
 export function fontesView(u) {
@@ -211,6 +239,7 @@ export function criarTextoPagina(vagas, pagina, total) {
   const linhas = itens.map((vaga, index) => {
     const numero = inicio + index + 1;
     const fonte = vaga.fonte ? ` <i>(${escaparHTML(vaga.fonte)})</i>` : "";
+
     return (
       `<b>${numero}. ${escaparHTML(vaga.titulo || vaga.nome || "Vaga")}</b>${fonte}\n` +
       `🔗 <a href="${escaparHTML(vaga.link)}">Ver vaga</a>`
@@ -229,9 +258,13 @@ export function criarTextoPagina(vagas, pagina, total) {
 export function tecladoPagina(id, pagina, totalPaginas) {
   const botoes = [];
 
-  if (pagina > 0) botoes.push(btn("⬅️ Anterior", `all:${id}:${pagina - 1}`));
-  if (pagina + 1 < totalPaginas)
+  if (pagina > 0) {
+    botoes.push(btn("⬅️ Anterior", `all:${id}:${pagina - 1}`));
+  }
+
+  if (pagina + 1 < totalPaginas) {
     botoes.push(btn("Próxima ➡️", `all:${id}:${pagina + 1}`));
+  }
 
   return [
     ...(botoes.length ? [botoes] : []),
