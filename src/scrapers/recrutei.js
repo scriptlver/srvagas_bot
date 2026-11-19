@@ -23,7 +23,7 @@ function decodificar(texto) {
     .replace(/&gt;/g, ">")
     .replace(/&#(\d+);/g, (_, n) => String.fromCodePoint(Number(n)))
     .replace(/&#x([0-9a-f]+);/gi, (_, n) =>
-      String.fromCodePoint(parseInt(n, 16))
+      String.fromCodePoint(parseInt(n, 16)),
     );
 }
 
@@ -32,24 +32,21 @@ function textoHtml(html) {
     String(html || "")
       .replace(/<script[\s\S]*?<\/script>/gi, " ")
       .replace(/<style[\s\S]*?<\/style>/gi, " ")
-      .replace(/<[^>]*>/g, " ")
+      .replace(/<[^>]*>/g, " "),
   )
     .replace(/\s+/g, " ")
     .trim();
 }
 
 function extrairAtributo(html, atributo) {
-  const regex = new RegExp(
-    `${atributo}\\s*=\\s*["']([^"']*)["']`,
-    "i"
-  );
+  const regex = new RegExp(`${atributo}\\s*=\\s*["']([^"']*)["']`, "i");
 
   return html.match(regex)?.[1] || "";
 }
 
 function extrairJsonLd(html) {
   const scripts = html.matchAll(
-    /<script[^>]*type=["']application\/ld\+json["'][^>]*>([\s\S]*?)<\/script>/gi
+    /<script[^>]*type=["']application\/ld\+json["'][^>]*>([\s\S]*?)<\/script>/gi,
   );
 
   function procurar(dados) {
@@ -92,14 +89,14 @@ function extrairJsonLd(html) {
 function extrairCards(html) {
   return [
     ...html.matchAll(
-      /<article\b(?=[^>]*class=["'][^"']*\bd2-jobrow\b)[^>]*>([\s\S]*?)<\/article>/gi
+      /<article\b(?=[^>]*class=["'][^"']*\bd2-jobrow\b)[^>]*>([\s\S]*?)<\/article>/gi,
     ),
   ].map((m) => m[1]);
 }
 
 function mapearCard(card) {
   const tituloHtml = card.match(
-    /<h3[^>]*class=["'][^"']*d2-jobrow__title[^"']*["'][^>]*>\s*<a\b([^>]*)>([\s\S]*?)<\/a>/i
+    /<h3[^>]*class=["'][^"']*d2-jobrow__title[^"']*["'][^>]*>\s*<a\b([^>]*)>([\s\S]*?)<\/a>/i,
   );
 
   if (!tituloHtml) return null;
@@ -111,17 +108,16 @@ function mapearCard(card) {
     return null;
   }
 
-  const link = href.startsWith("http")
-    ? href
-    : `${BASE_URL}${href}`;
+  const link = href.startsWith("http") ? href : `${BASE_URL}${href}`;
 
   const id = link.match(/\/vaga\/[^/]+\/(\d+)-/i)?.[1];
 
   if (!id) return null;
 
-  const metaHtml = card.match(
-    /<p[^>]*class=["'][^"']*d2-jobrow__meta[^"']*["'][^>]*>([\s\S]*?)<\/p>/i
-  )?.[1] || "";
+  const metaHtml =
+    card.match(
+      /<p[^>]*class=["'][^"']*d2-jobrow__meta[^"']*["'][^>]*>([\s\S]*?)<\/p>/i,
+    )?.[1] || "";
 
   const meta = textoHtml(metaHtml);
   const [empresaRaw, localRaw = ""] = meta.split(" · ");
@@ -135,7 +131,7 @@ function mapearCard(card) {
 
   const badges = [
     ...card.matchAll(
-      /<span[^>]*class=["'][^"']*d2-badge[^"']*["'][^>]*>([\s\S]*?)<\/span>/gi
+      /<span[^>]*class=["'][^"']*d2-badge[^"']*["'][^>]*>([\s\S]*?)<\/span>/gi,
     ),
   ].map((m) => normalizar(textoHtml(m[1])));
 
@@ -190,9 +186,7 @@ function filtrarLocal(vagas, remoto, local) {
 }
 
 async function buscarPagina(pagina) {
-  const url = pagina === 1
-    ? URL_CATEGORIA
-    : `${URL_CATEGORIA}?page=${pagina}`;
+  const url = pagina === 1 ? URL_CATEGORIA : `${URL_CATEGORIA}?page=${pagina}`;
 
   const response = await fetch(url, {
     headers: HEADERS,
@@ -277,17 +271,10 @@ export async function buscarRecrutei({
       await dormir(PAUSA_MS);
     }
 
-    // Filtra modalidade e localização antes de consultar os detalhes.
-    const compativeis = filtrarLocal(
-      listadas,
-      remoto,
-      localEfetivo
-    );
+    const compativeis = filtrarLocal(listadas, remoto, localEfetivo);
 
     const unicas = [
-      ...new Map(
-        compativeis.map((v) => [v.link, v])
-      ).values(),
+      ...new Map(compativeis.map((v) => [v.link, v])).values(),
     ].slice(0, MAX_DETALHES);
 
     const detalhadas = [];
@@ -296,26 +283,18 @@ export async function buscarRecrutei({
       try {
         detalhadas.push(await buscarDetalhe(vaga));
       } catch (error) {
-        console.log(
-          `Recrutei falhou no detalhe ${vaga.id}:`,
-          error.message
-        );
+        console.log(`Recrutei falhou no detalhe ${vaga.id}:`, error.message);
         detalhadas.push(vaga);
       }
 
       await dormir(PAUSA_MS);
     }
 
-    const resultado = filtrarLocal(
-      detalhadas,
-      remoto,
-      localEfetivo
-    );
+    const resultado = filtrarLocal(detalhadas, remoto, localEfetivo);
 
     resultado.sort(
       (a, b) =>
-        (b.publicadaEm?.getTime() || 0) -
-        (a.publicadaEm?.getTime() || 0)
+        (b.publicadaEm?.getTime() || 0) - (a.publicadaEm?.getTime() || 0),
     );
 
     console.log(`Recrutei: ${resultado.length} vagas`);

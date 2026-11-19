@@ -13,9 +13,7 @@ const HEADERS = {
 
 function mapear(v) {
   const nome = String(v.name || "").trim();
-  const empresa = String(
-    v.custom_company_name || v.company?.name || ""
-  ).trim();
+  const empresa = String(v.custom_company_name || v.company?.name || "").trim();
 
   let link = v.email_share_url || v.whatsapp_share_url || "";
 
@@ -74,9 +72,7 @@ async function buscarTermo(termo) {
 
     const json = await response.json();
 
-    const lista = Array.isArray(json?.opportunities)
-      ? json.opportunities
-      : [];
+    const lista = Array.isArray(json?.opportunities) ? json.opportunities : [];
 
     if (!lista.length) break;
 
@@ -104,11 +100,7 @@ export async function buscarTrampos({
   const chaveLocal = formatarLocal(localEfetivo);
 
   const termosUnicos = [
-    ...new Set(
-      termos
-        .map((t) => String(t).trim())
-        .filter(Boolean)
-    ),
+    ...new Set(termos.map((t) => String(t).trim()).filter(Boolean)),
   ].slice(0, MAX_TERMOS);
 
   const todas = [];
@@ -143,8 +135,6 @@ export async function buscarTrampos({
   });
 
   return [...porLink.values()].sort(
-    (a, b) =>
-      (b.publicadaEm?.getTime() || 0) -
-      (a.publicadaEm?.getTime() || 0)
+    (a, b) => (b.publicadaEm?.getTime() || 0) - (a.publicadaEm?.getTime() || 0),
   );
 }

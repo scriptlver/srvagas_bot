@@ -293,9 +293,7 @@ export async function runCron(env, scheduledAt = Date.now()) {
             continue;
           }
 
-          const horarioLocal = new Date(
-            agora + user.tz * 3600000,
-          );
+          const horarioLocal = new Date(agora + user.tz * 3600000);
 
           const hora = horarioLocal.getUTCHours();
 
@@ -304,12 +302,7 @@ export async function runCron(env, scheduledAt = Date.now()) {
             continue;
           }
 
-          // Identifica a execução pela hora real do Cron em UTC.
-          // Isso evita duplicações na mesma hora sem bloquear
-          // novos envios do usuário em outro horário do mesmo dia.
-          const slotExecucao = new Date(agora)
-            .toISOString()
-            .slice(0, 13);
+          const slotExecucao = new Date(agora).toISOString().slice(0, 13);
 
           if (user.lastRunSlot === slotExecucao) {
             ignorados++;
@@ -354,10 +347,7 @@ export async function runCron(env, scheduledAt = Date.now()) {
       }
     } while (cursor);
   } catch (error) {
-    console.log(
-      "Erro geral no Cron:",
-      error?.stack || String(error),
-    );
+    console.log("Erro geral no Cron:", error?.stack || String(error));
 
     throw error;
   } finally {

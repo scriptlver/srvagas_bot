@@ -51,9 +51,7 @@ export function configView(u) {
     RULER;
 
   const kb = [
-    [
-      btn(`📍 Local: ${formatarLocal(u.local) || "qualquer"}`, "loc"),
-    ],
+    [btn(`📍 Local: ${formatarLocal(u.local) || "qualquer"}`, "loc")],
     [
       btn(`⏰ Horário: ${String(u.hour).padStart(2, "0")}:00`, "hour"),
       btn(`📊 Limite: ${u.count}`, "count"),
@@ -89,10 +87,7 @@ export function localView(u) {
       aviso +
       `\n\nPara cancelar, use /cancelar.\n` +
       RULER,
-    kb: [
-      [btn("🗑️ Limpar localização", "loc:clr")],
-      [btn("⬅️ Voltar", "cfg")],
-    ],
+    kb: [[btn("🗑️ Limpar localização", "loc:clr")], [btn("⬅️ Voltar", "cfg")]],
   };
 }
 
@@ -196,10 +191,7 @@ export function termsView(u, kind) {
       `${lista}\n\n` +
       `Envie os termos separados por vírgula ou em linhas diferentes.\n` +
       `Para cancelar, use /cancelar.`,
-    kb: [
-      [btn("🗑️ Limpar termos", `clr:${kind}`)],
-      [btn("⬅️ Voltar", "cfg")],
-    ],
+    kb: [[btn("🗑️ Limpar termos", `clr:${kind}`)], [btn("⬅️ Voltar", "cfg")]],
   };
 }
 
@@ -246,9 +238,7 @@ export function criarTextoPagina(vagas, pagina, total) {
 
   const linhas = itens.map((vaga, index) => {
     const numero = inicio + index + 1;
-    const fonte = vaga.fonte
-      ? ` <i>(${escaparHTML(vaga.fonte)})</i>`
-      : "";
+    const fonte = vaga.fonte ? ` <i>(${escaparHTML(vaga.fonte)})</i>` : "";
 
     return (
       `<b>${numero}. ${escaparHTML(vaga.titulo || vaga.nome || "Vaga")}</b>${fonte}\n` +

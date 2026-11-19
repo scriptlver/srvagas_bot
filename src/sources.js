@@ -34,13 +34,13 @@ export const FONTES = [
   },
 ];
 
-export const CHAVES_FONTES = FONTES.map(f => f.chave);
+export const CHAVES_FONTES = FONTES.map((f) => f.chave);
 
 export const FONTES_PADRAO = CHAVES_FONTES.slice(0, MAX_FONTES);
 
 export function sanitizarFontes(lista) {
   const validas = Array.isArray(lista)
-    ? CHAVES_FONTES.filter(chave => lista.includes(chave))
+    ? CHAVES_FONTES.filter((chave) => lista.includes(chave))
     : [];
 
   const final = validas.slice(0, MAX_FONTES);
@@ -48,7 +48,5 @@ export function sanitizarFontes(lista) {
   return final.length ? final : [...FONTES_PADRAO];
 }
 
-export const fontesAtivas = user =>
-  FONTES.filter(f =>
-    sanitizarFontes(user.fontes).includes(f.chave)
-  );
+export const fontesAtivas = (user) =>
+  FONTES.filter((f) => sanitizarFontes(user.fontes).includes(f.chave));

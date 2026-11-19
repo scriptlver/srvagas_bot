@@ -12,11 +12,7 @@ function sanitizarLocal(local) {
 function numeroValido(valor, minimo, maximo, padrao) {
   const numero = Number(valor);
 
-  if (
-    !Number.isInteger(numero) ||
-    numero < minimo ||
-    numero > maximo
-  ) {
+  if (!Number.isInteger(numero) || numero < minimo || numero > maximo) {
     return padrao;
   }
 
@@ -63,23 +59,11 @@ export async function getUser(env, chatId) {
 
     chatId: id,
 
-    hour: numeroValido(
-      salvo.hour,
-      0,
-      23,
-      DEFAULTS.hour,
-    ),
+    hour: numeroValido(salvo.hour, 0, 23, DEFAULTS.hour),
 
-    tz: numeroValido(
-      salvo.tz,
-      -12,
-      14,
-      DEFAULTS.tz,
-    ),
+    tz: numeroValido(salvo.tz, -12, 14, DEFAULTS.tz),
 
-    count: [5, 10, 15, 20, 25, 30, 40, 50].includes(
-      Number(salvo.count),
-    )
+    count: [5, 10, 15, 20, 25, 30, 40, 50].includes(Number(salvo.count))
       ? Number(salvo.count)
       : DEFAULTS.count,
 
@@ -95,18 +79,11 @@ export async function getUser(env, chatId) {
 
     local: sanitizarLocal(salvo.local),
 
-    sentJobs: Number.isFinite(salvo.sentJobs)
-      ? salvo.sentJobs
-      : 0,
+    sentJobs: Number.isFinite(salvo.sentJobs) ? salvo.sentJobs : 0,
 
-    sentMessages: Number.isFinite(salvo.sentMessages)
-      ? salvo.sentMessages
-      : 0,
+    sentMessages: Number.isFinite(salvo.sentMessages) ? salvo.sentMessages : 0,
 
-    lastRunSlot:
-      typeof salvo.lastRunSlot === "string"
-        ? salvo.lastRunSlot
-        : "",
+    lastRunSlot: typeof salvo.lastRunSlot === "string" ? salvo.lastRunSlot : "",
   };
 
   delete usuario.sent;
@@ -115,8 +92,5 @@ export async function getUser(env, chatId) {
 }
 
 export async function saveUser(env, user) {
-  await env.KV.put(
-    `u:${user.chatId}`,
-    JSON.stringify(user),
-  );
+  await env.KV.put(`u:${user.chatId}`, JSON.stringify(user));
 }

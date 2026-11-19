@@ -24,7 +24,7 @@ function limparTexto(valor) {
 
 function encontrarJobPosting(html) {
   const scripts = html.matchAll(
-    /<script[^>]*type=["']application\/ld\+json["'][^>]*>([\s\S]*?)<\/script>/gi
+    /<script[^>]*type=["']application\/ld\+json["'][^>]*>([\s\S]*?)<\/script>/gi,
   );
 
   function procurar(dados) {
@@ -99,9 +99,7 @@ function mapear(v, html, link) {
   const remoto = modalidade === "remoto";
 
   const identificador =
-    typeof v.identifier === "object"
-      ? v.identifier?.value
-      : v.identifier;
+    typeof v.identifier === "object" ? v.identifier?.value : v.identifier;
 
   const nome = String(v.title || "").trim();
   const empresa = v.hiringOrganization?.name || "";
@@ -155,7 +153,7 @@ async function buscarUrls(termos) {
 
   const urls = [
     ...xml.matchAll(
-      /<loc>(https:\/\/www\.geekhunter\.com(?:\.br)?\/pt\/[^<]+\/jobs\/[^<]+)<\/loc>/gi
+      /<loc>(https:\/\/www\.geekhunter\.com(?:\.br)?\/pt\/[^<]+\/jobs\/[^<]+)<\/loc>/gi,
     ),
   ].map((m) => m[1]);
 
@@ -222,8 +220,7 @@ export async function buscarGeekHunter({
 
     const final = [...porLink.values()].sort(
       (a, b) =>
-        (b.publicadaEm?.getTime() || 0) -
-        (a.publicadaEm?.getTime() || 0)
+        (b.publicadaEm?.getTime() || 0) - (a.publicadaEm?.getTime() || 0),
     );
 
     console.log(`GeekHunter: ${final.length} vagas`);
