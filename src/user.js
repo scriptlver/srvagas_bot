@@ -1,5 +1,25 @@
 import { FONTES_PADRAO, sanitizarFontes } from './sources.js';
 
+const LEGACY_INCLUDE = [
+  'desenvolvedor',
+  'desenvolvedor full stack',
+  'desenvolvedor back end',
+  'desenvolvedor front end',
+  'júnior',
+  'junior',
+  'estágio',
+  'remoto',
+];
+
+const LEGACY_EXCLUDE = [
+  'senior', 'sr', 'pleno', 'pl', 'ii', 'iii',
+  'n1', 'n2', 'n3', 'hibrido', 'hibrida',
+  'pcd', 'mid', 'consultor', 'php', '.net', 'angular',
+];
+
+const mesmaLista = (a, b) =>
+  a.length === b.length && [...a].sort().join('|') === [...b].sort().join('|');
+
 export const DEFAULTS = {
   nome: '',
   hour: 9,
@@ -7,24 +27,10 @@ export const DEFAULTS = {
   tz: -3,
   remoto: true,
   fontes: [...FONTES_PADRAO],
-  include: [
-    'desenvolvedor',
-    'desenvolvedor full stack',
-    'desenvolvedor back end',
-    'desenvolvedor front end',
-    'júnior',
-    'junior',
-    'estágio',
-    'remoto',
-  ],
-  exclude: [
-    'senior', 'sr', 'pleno', 'pl', 'ii', 'iii',
-    'n1', 'n2', 'n3', 'hibrido', 'hibrida',
-    'pcd', 'mid', 'consultor', 'php', '.net', 'angular',
-  ],
+  include: [],
+  exclude: [],
   paused: false,
   awaiting: null,
-  sent: [],
   sentJobs: 0,
   sentMessages: 0,
   lastRun: '',
@@ -36,7 +42,6 @@ export function criarUsuario(chatId) {
     include: [...DEFAULTS.include],
     exclude: [...DEFAULTS.exclude],
     fontes: [...DEFAULTS.fontes],
-    sent: [],
     chatId: String(chatId),
   };
 }
@@ -47,17 +52,23 @@ export async function getUser(env, chatId) {
 
   if (!salvo) return criarUsuario(id);
 
-  return {
+  const usuario = {
     ...criarUsuario(id),
     ...salvo,
     chatId: id,
     include: Array.isArray(salvo.include) ? salvo.include : [...DEFAULTS.include],
     exclude: Array.isArray(salvo.exclude) ? salvo.exclude : [...DEFAULTS.exclude],
     fontes: sanitizarFontes(salvo.fontes),
-    sent: Array.isArray(salvo.sent) ? salvo.sent : [],
     sentJobs: Number.isFinite(salvo.sentJobs) ? salvo.sentJobs : 0,
     sentMessages: Number.isFinite(salvo.sentMessages) ? salvo.sentMessages : 0,
   };
+
+  delete usuario.sent;
+
+  if (mesmaLista(usuario.include, LEGACY_INCLUDE)) usuario.include = [];
+  if (mesmaLista(usuario.exclude, LEGACY_EXCLUDE)) usuario.exclude = [];
+
+  return usuario;
 }
 
 export async function saveUser(env, user) {

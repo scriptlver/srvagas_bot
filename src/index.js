@@ -167,13 +167,6 @@ async function onCallback(env, callback) {
   } else if (data === 'pause') {
     user.paused = !user.paused;
     view = mainView(user);
-  } else if (data === 'reset') {
-    user.sent = [];
-    user.sentJobs = 0;
-    user.sentMessages = 0;
-    user.lastRun = '';
-    user.awaiting = null;
-    view = configView(user);
   } else if (data.startsWith('h:')) {
     const hour = Number(data.slice(2));
     if (!Number.isInteger(hour) || hour < 0 || hour > 23) return;

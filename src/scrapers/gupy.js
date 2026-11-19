@@ -51,7 +51,7 @@ async function buscarPagina(termo, offset, estado) {
     sortBy: 'publishedDate',
   });
 
-  if (estado.filtroServidor) params.set('workplaceTypes[]', 'remote');
+  if (estado.filtroServidor) params.set('workplaceType', 'remote');
 
   const response = await fetch(`${URL_API}?${params}`, { headers: HEADERS });
 
@@ -72,13 +72,7 @@ async function buscarTermo(termo, remoto) {
   const vagas = [];
 
   for (let pagina = 0; pagina < PAGINAS; pagina++) {
-    let lista = await buscarPagina(termo, pagina * POR_PAGINA, estado);
-
-    if (pagina === 0 && lista.length === 0 && estado.filtroServidor) {
-      console.log('Gupy não retornou vagas remotas; tentando sem o filtro remoto.');
-      estado.filtroServidor = false;
-      lista = await buscarPagina(termo, 0, estado);
-    }
+    const lista = await buscarPagina(termo, pagina * POR_PAGINA, estado);
 
     vagas.push(...lista.map(mapear));
 

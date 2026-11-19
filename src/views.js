@@ -9,19 +9,24 @@ export function mainView(u) {
   const fontes = fontesAtivas(u).map((f) => f.chave).join(' + ');
 
   const text =
-    `Olá${u.nome ? ` ${escaparHTML(u.nome)}` : ''}! como vai? 😊\n\n` +
+    `Olá${u.nome ? ` ${escaparHTML(u.nome)}` : ''} :)\n\n` +
 
-    `⚙️ <b>Suas preferências</b>\n` +
-    `⏰ Horário de envio das vagas: ${String(u.hour).padStart(2, '0')}:00\n` +
+    `⚙️ <b>PREFERÊNCIAS</b>\n` +
+    `⏰ Horário de envio: ${String(u.hour).padStart(2, '0')}:00\n` +
     `📊 Limite por fonte: ${u.count} vagas\n` +
-    `🏠 Apenas vagas remotas: ${u.remoto ? 'Sim' : 'Não'}\n` +
-    `🌐 Fontes: ${escaparHTML(fontes)}\n` +
-    RULER + '\n' +
-    `🔎 <b>Seus filtros de busca</b>\n` +
+    `🏠 Apenas remotas: ${u.remoto ? 'Sim' : 'Não'}\n` +
+    `🌐 Fontes: ${escaparHTML(fontes)}\n\n` +
+
+    `🔎 <b>FILTROS DE BUSCA</b>\n` +
     `✅ Termos incluídos: ${u.include.length}\n` +
     `❌ Termos excluídos: ${u.exclude.length}\n\n` +
 
-    `Escolha uma opção abaixo:\n`;
+    (u.include.length
+      ? ''
+      : `⚠️ Você ainda não definiu termos de busca. Vá em Configurações → Incluir.\n\n`) +
+
+    `Escolha uma opção para configurar o bot:\n` +
+    RULER;
 
   const kb = [
     [btn('🔎 Buscar vagas agora', 'now')],
@@ -50,7 +55,6 @@ export function configView(u) {
       btn(`✅ Incluir (${u.include.length})`, 'inc'),
       btn(`❌ Excluir (${u.exclude.length})`, 'exc'),
     ],
-    [btn('🧹 Limpar histórico', 'reset')],
     [btn('⬅️ Voltar', 'menu')],
   ];
 

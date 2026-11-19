@@ -1,6 +1,5 @@
 import {
   MAX_TERMOS,
-  MAX_ENVIADAS,
   PAUSA_MS,
   RESULTADOS_TTL,
   RESULTADOS_POR_PAGINA,
@@ -36,16 +35,6 @@ export async function mostrarPaginaRestantes(env, chatId, messageId, id, pagina)
       },
     });
   }
-
-  const user = await getUser(env, chatId);
-  const linksVistos = new Set(user.sent);
-
-  for (const vaga of salvo.vagas) {
-    if (vaga.link) linksVistos.add(vaga.link);
-  }
-
-  user.sent = [...linksVistos].slice(-MAX_ENVIADAS);
-  await saveUser(env, user);
 
   const total = salvo.vagas.length;
   const totalPaginas = Math.ceil(total / RESULTADOS_POR_PAGINA);
@@ -100,18 +89,11 @@ export async function sendJobs(env, user, { manual = false, cache = new Map() } 
       }
     });
 
-    const enviadas = new Set(user.sent);
     const vistas = new Set();
-    let jaEnviadas = 0;
     let excluidas = 0;
 
     const novas = todas.filter((vaga) => {
       if (!vaga?.link || vistas.has(vaga.link)) return false;
-
-      if (enviadas.has(vaga.link)) {
-        jaEnviadas++;
-        return false;
-      }
 
       const nome = normalizar(vaga.nome || vaga.titulo || '');
       const palavras = new Set(nome.split(/[^a-z0-9.#+]+/).filter(Boolean));
@@ -132,13 +114,13 @@ export async function sendJobs(env, user, { manual = false, cache = new Map() } 
     });
 
     console.log(
-      `Chat ${user.chatId}: ${novas.length} novas de ${todas.length} encontradas ` +
-      `(${jaEnviadas} já enviadas, ${excluidas} excluídas)`,
+      `Chat ${user.chatId}: ${novas.length} vagas de ${todas.length} encontradas ` +
+      `(${excluidas} excluídas)`,
     );
 
     if (!novas.length) {
       if (manual) {
-        await say(env, user.chatId, '😕 Nenhuma vaga nova com esses filtros agora.');
+        await say(env, user.chatId, '😕 Nenhuma vaga encontrada com esses filtros agora.');
       }
       return;
     }
@@ -160,7 +142,7 @@ export async function sendJobs(env, user, { manual = false, cache = new Map() } 
 
     const resumo =
       `💼 <b>RELATÓRIO DE VAGAS — ${dataFormatada}</b>\n\n` +
-      `📌 Encontramos <b>${novas.length} novas vagas</b> compatíveis com seus filtros.\n` +
+      `📌 Encontramos <b>${novas.length} vagas</b> compatíveis com seus filtros.\n` +
       `📨 Enviamos <b>${selecionadas.length}</b> vagas, respeitando seu limite de ${user.count} por fonte.`;
 
     let tecladoResumo;
@@ -190,11 +172,6 @@ export async function sendJobs(env, user, { manual = false, cache = new Map() } 
 
         user.sentJobs += mensagem.vagas.length;
         user.sentMessages++;
-
-        for (const vaga of mensagem.vagas) enviadas.add(vaga.link);
-
-        user.sent = [...enviadas].slice(-MAX_ENVIADAS);
-        await saveUser(env, user);
 
         await dormir(PAUSA_MS);
       }
