@@ -42,30 +42,30 @@ a estrutura do projeto está organizada da seguinte forma:
 srvagas_bot/
 │
 ├─ .wrangler/                 # configurações locais do wrangler
+├─ assets/                    # imagens e recursos visuais
 ├─ node_modules/              # dependências do projeto
 │
-├─ assets/                    # imagens e recursos visuais
-│   └─ sr-vagas.png           # mascote do projeto
-│
 ├─ src/                       # código-fonte principal
-│   │
-│   ├─ config/                # configurações do bot
-│   │   └─ telegram.js        # integração com o telegram
 │   │
 │   ├─ scrapers/              # módulos de coleta de oportunidades
 │   │   ├─ gupy.js
 │   │   └─ solides.js
 │   │
+│   ├─ config.js              # configurações do bot
 │   ├─ index.js               # inicialização e execução do bot
-│   └─ util.js                # funções auxiliares
+│   ├─ jobs.js                # gerenciamento das vagas
+│   ├─ sources.js              # gerenciamento das fontes
+│   ├─ telegram.js            # integração com o telegram
+│   ├─ user.js                # gerenciamento dos usuários
+│   ├─ utils.js               # funções auxiliares
+│   └─ views.js               # menus e interfaces do bot
 │
 ├─ .env                       # variáveis de ambiente
-├─ enviadas.json              # histórico de vagas enviadas
+├─ .gitattributes
 ├─ .gitignore
 ├─ LICENSE
-├─ package.json
 ├─ package-lock.json
-├─ README.md
+├─ package.json
 └─ wrangler.toml              # configurações do cloudflare workers
 ```
 
@@ -124,15 +124,32 @@ assim, o cloudflare funciona como a infraestrutura responsável por manter o sr.
 
 o bot possui um painel de controle interativo diretamente no telegram, permitindo configurar as preferências de recebimento sem precisar alterar manualmente o código.
 
-entre as opções disponíveis estão:
+o menu principal apresenta um resumo das configurações atuais do usuário, incluindo:
 
-- ⏰ **horário de envio:** define o horário em que as oportunidades serão encaminhadas.
-- 📊 **quantidade por fonte:** configura o limite de oportunidades enviadas por plataforma.
-- 🏠 **modalidade remota:** permite filtrar oportunidades exclusivamente remotas.
-- ✅ **incluir termos:** define palavras-chave que devem estar presentes nas oportunidades.
-- ❌ **excluir termos:** define palavras-chave que devem ser ignoradas.
-- 🧹 **limpar histórico:** permite gerenciar o histórico de oportunidades enviadas.
-- 🔎 **buscar vagas agora:** permite buscar vagas imediatamente.
+- ⏰ **horário de envio:** exibe o horário configurado para o envio automático das oportunidades.
+- 📊 **limite por fonte:** apresenta a quantidade máxima de vagas por plataforma.
+- 🏠 **apenas remotas:** informa se o filtro de oportunidades remotas está ativado.
+- 🌐 **fontes:** apresenta as plataformas selecionadas para a busca.
+- ✅ **termos incluídos:** exibe a quantidade de termos configurados para inclusão.
+- ❌ **termos excluídos:** exibe a quantidade de termos configurados para exclusão.
+
+o menu também disponibiliza duas opções principais:
+
+- 🔎 **buscar vagas agora:** permite iniciar uma busca manual de oportunidades.
+- ⚙️ **configurações:** permite acessar as opções de personalização do bot.
+
+### ⚙️ configurações disponíveis
+
+o menu de configurações permite alterar individualmente as preferências de busca por meio de botões interativos:
+
+- ⏰ **horário:** define o horário de envio automático das oportunidades.
+- 📊 **limite:** configura a quantidade máxima de vagas por fonte.
+- 🌐 **fontes:** permite selecionar as plataformas utilizadas na busca, como gupy e sólides.
+- 🏠 **remoto:** permite ativar ou desativar o filtro de vagas exclusivamente remotas.
+- ✅ **incluir:** gerencia os termos que devem ser considerados nas buscas.
+- ❌ **excluir:** gerencia os termos que devem ser ignorados.
+
+também é possível visualizar a quantidade de termos cadastrados em cada filtro e retornar ao menu principal por meio da opção voltar.
 
 as configurações podem ser ajustadas diretamente pelos botões disponibilizados na conversa com o bot.
 
@@ -143,7 +160,9 @@ o projeto conta com um sistema de filtragem para tornar a divulgação das oport
 os filtros permitem:
 
 - selecionar oportunidades por palavras-chave.
+- incluir termos que devem ser considerados nas buscas.
 - ignorar vagas que contenham determinados termos.
+- selecionar as fontes de oportunidades.
 - priorizar oportunidades remotas.
 - limitar a quantidade de vagas recebidas por fonte.
 
