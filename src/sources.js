@@ -1,11 +1,11 @@
-import { buscarGupy } from './scrapers/gupy.js';
-import { buscarSolides } from './scrapers/solides.js';
+import { buscarGupy } from "./scrapers/gupy.js";
+import { buscarSolides } from "./scrapers/solides.js";
 
 export const MAX_FONTES = 2;
 
 export const FONTES = [
-  { chave: 'Gupy', emoji: '🟣', buscar: buscarGupy },
-  { chave: 'Solides', emoji: '🟠', buscar: buscarSolides },
+  { chave: "Gupy", emoji: "🟣", buscar: buscarGupy },
+  { chave: "Solides", emoji: "🟠", buscar: buscarSolides },
 ];
 
 export const CHAVES_FONTES = FONTES.map((f) => f.chave);

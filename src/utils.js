@@ -1,26 +1,24 @@
-// Funções auxiliares sem dependência do resto do bot
-
 export const dormir = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
 export const normalizar = (texto) =>
-  String(texto || '')
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
+  String(texto || "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
     .toLowerCase();
 
 export const escaparHTML = (texto) =>
-  String(texto ?? '')
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;');
+  String(texto ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
 
 export const btn = (text, data) => ({
   text,
   callback_data: data,
 });
 
-export const fmtTz = (tz) => `UTC${tz >= 0 ? '+' : ''}${tz}`;
+export const fmtTz = (tz) => `UTC${tz >= 0 ? "+" : ""}${tz}`;
 
 export const porData = (a, b) =>
   (new Date(b.publicadaEm || 0).getTime() || 0) -

@@ -3,49 +3,65 @@ import {
   PAUSA_MS,
   RESULTADOS_TTL,
   RESULTADOS_POR_PAGINA,
-} from './config.js';
-import { btn, dormir, normalizar, porData } from './utils.js';
-import { fontesAtivas } from './sources.js';
-import { getUser, saveUser } from './user.js';
-import { say, editarMensagem } from './telegram.js';
-import { criarTextoPagina, montarMensagens, tecladoPagina } from './views.js';
+} from "./config.js";
+import { btn, dormir, normalizar, porData } from "./utils.js";
+import { fontesAtivas } from "./sources.js";
+import { getUser, saveUser } from "./user.js";
+import { say, editarMensagem } from "./telegram.js";
+import { criarTextoPagina, montarMensagens, tecladoPagina } from "./views.js";
 
-export async function mostrarPaginaRestantes(env, chatId, messageId, id, pagina) {
+export async function mostrarPaginaRestantes(
+  env,
+  chatId,
+  messageId,
+  id,
+  pagina,
+) {
   const chave = `r:${chatId}:${id}`;
-  const salvo = await env.KV.get(chave, 'json');
+  const salvo = await env.KV.get(chave, "json");
 
   if (!salvo || !Array.isArray(salvo.vagas) || !salvo.vagas.length) {
     return editarMensagem(env, {
       chat_id: chatId,
       message_id: messageId,
-      text: '⌛ Esta lista expirou. Faça uma nova busca para consultar as oportunidades.',
-      reply_markup: { inline_keyboard: [[btn('🔎 Buscar novamente', 'now')]] },
+      text: "⌛ Esta lista expirou. Faça uma nova busca para consultar as oportunidades.",
+      reply_markup: { inline_keyboard: [[btn("🔎 Buscar novamente", "now")]] },
     });
   }
 
-  if (pagina === 'back') {
+  if (pagina === "back") {
     return editarMensagem(env, {
       chat_id: chatId,
       message_id: messageId,
       text: salvo.resumo,
-      parse_mode: 'HTML',
+      parse_mode: "HTML",
       link_preview_options: { is_disabled: true },
       reply_markup: {
-        inline_keyboard: [[btn(`💡 Ver todas as ${salvo.vagas.length} vagas restantes`, `all:${id}:0`)]],
+        inline_keyboard: [
+          [
+            btn(
+              `💡 Ver todas as ${salvo.vagas.length} vagas restantes`,
+              `all:${id}:0`,
+            ),
+          ],
+        ],
       },
     });
   }
 
   const total = salvo.vagas.length;
   const totalPaginas = Math.ceil(total / RESULTADOS_POR_PAGINA);
-  const paginaSegura = Math.min(Math.max(Number(pagina) || 0, 0), totalPaginas - 1);
+  const paginaSegura = Math.min(
+    Math.max(Number(pagina) || 0, 0),
+    totalPaginas - 1,
+  );
   const resultado = criarTextoPagina(salvo.vagas, paginaSegura, total);
 
   return editarMensagem(env, {
     chat_id: chatId,
     message_id: messageId,
     text: resultado.texto,
-    parse_mode: 'HTML',
+    parse_mode: "HTML",
     link_preview_options: { is_disabled: true },
     reply_markup: {
       inline_keyboard: tecladoPagina(id, paginaSegura, resultado.totalPaginas),
@@ -53,12 +69,16 @@ export async function mostrarPaginaRestantes(env, chatId, messageId, id, pagina)
   });
 }
 
-export async function sendJobs(env, user, { manual = false, cache = new Map() } = {}) {
+export async function sendJobs(
+  env,
+  user,
+  { manual = false, cache = new Map() } = {},
+) {
   if (!user.include.length) {
     return say(
       env,
       user.chatId,
-      'Você ainda não definiu termos para buscar. Use /menu → ✅ Incluir termos.',
+      "Você ainda não definiu termos para buscar. Use /menu → ✅ Incluir termos.",
     );
   }
 
@@ -79,9 +99,9 @@ export async function sendJobs(env, user, { manual = false, cache = new Map() } 
     const todas = [];
 
     resultados.forEach((resultado, index) => {
-      if (resultado.status === 'fulfilled' && Array.isArray(resultado.value)) {
+      if (resultado.status === "fulfilled" && Array.isArray(resultado.value)) {
         todas.push(...resultado.value);
-      } else if (resultado.status === 'rejected') {
+      } else if (resultado.status === "rejected") {
         console.log(
           `${fontes[index].chave} falhou:`,
           resultado.reason?.message || resultado.reason,
@@ -95,7 +115,7 @@ export async function sendJobs(env, user, { manual = false, cache = new Map() } 
     const novas = todas.filter((vaga) => {
       if (!vaga?.link || vistas.has(vaga.link)) return false;
 
-      const nome = normalizar(vaga.nome || vaga.titulo || '');
+      const nome = normalizar(vaga.nome || vaga.titulo || "");
       const palavras = new Set(nome.split(/[^a-z0-9.#+]+/).filter(Boolean));
 
       const excluida = user.exclude.some((termo) => {
@@ -115,12 +135,16 @@ export async function sendJobs(env, user, { manual = false, cache = new Map() } 
 
     console.log(
       `Chat ${user.chatId}: ${novas.length} vagas de ${todas.length} encontradas ` +
-      `(${excluidas} excluídas)`,
+        `(${excluidas} excluídas)`,
     );
 
     if (!novas.length) {
       if (manual) {
-        await say(env, user.chatId, '😕 Nenhuma vaga encontrada com esses filtros agora.');
+        await say(
+          env,
+          user.chatId,
+          "😕 Nenhuma vaga encontrada com esses filtros agora.",
+        );
       }
       return;
     }
@@ -138,7 +162,9 @@ export async function sendJobs(env, user, { manual = false, cache = new Map() } 
     }
 
     const dataLocal = new Date(Date.now() + user.tz * 3600000);
-    const dataFormatada = dataLocal.toLocaleDateString('pt-BR', { timeZone: 'UTC' });
+    const dataFormatada = dataLocal.toLocaleDateString("pt-BR", {
+      timeZone: "UTC",
+    });
 
     const resumo =
       `💼 <b>RELATÓRIO DE VAGAS — ${dataFormatada}</b>\n\n` +
@@ -148,7 +174,7 @@ export async function sendJobs(env, user, { manual = false, cache = new Map() } 
     let tecladoResumo;
 
     if (restantes.length) {
-      const id = crypto.randomUUID().replace(/-/g, '').slice(0, 12);
+      const id = crypto.randomUUID().replace(/-/g, "").slice(0, 12);
 
       await env.KV.put(
         `r:${user.chatId}:${id}`,
@@ -157,13 +183,21 @@ export async function sendJobs(env, user, { manual = false, cache = new Map() } 
       );
 
       tecladoResumo = {
-        inline_keyboard: [[btn(`💡 Ver todas as ${restantes.length} vagas restantes`, `all:${id}:0`)]],
+        inline_keyboard: [
+          [
+            btn(
+              `💡 Ver todas as ${restantes.length} vagas restantes`,
+              `all:${id}:0`,
+            ),
+          ],
+        ],
       };
     }
 
     for (const fonte of fontes) {
-      const daFonte = selecionadas
-        .filter((vaga) => normalizar(vaga.fonte) === normalizar(fonte.chave));
+      const daFonte = selecionadas.filter(
+        (vaga) => normalizar(vaga.fonte) === normalizar(fonte.chave),
+      );
 
       const mensagens = montarMensagens(fonte.chave, fonte.emoji, daFonte);
 
@@ -180,19 +214,20 @@ export async function sendJobs(env, user, { manual = false, cache = new Map() } 
     await say(
       env,
       user.chatId,
-      resumo + (restantes.length
-        ? `\n\n💡 Além dessas, encontramos <b>${restantes.length} vagas</b> que também combinam com você.`
-        : '\n\nVocê recebeu todas as vagas encontradas dentro do seu limite.'),
+      resumo +
+        (restantes.length
+          ? `\n\n💡 Além dessas, encontramos <b>${restantes.length} vagas</b> que também combinam com você.`
+          : "\n\nVocê recebeu todas as vagas encontradas dentro do seu limite."),
       tecladoResumo ? { reply_markup: tecladoResumo } : {},
     );
   } catch (error) {
-    console.log('Erro ao buscar vagas:', error);
+    console.log("Erro ao buscar vagas:", error);
 
     if (manual) {
       await say(
         env,
         user.chatId,
-        '⚠️ Ocorreu um erro durante a busca. Tente novamente mais tarde.',
+        "⚠️ Ocorreu um erro durante a busca. Tente novamente mais tarde.",
       ).catch(() => {});
     }
   } finally {
@@ -206,7 +241,7 @@ export async function runCron(env) {
   let cursor;
 
   do {
-    const pagina = await env.KV.list({ prefix: 'u:', cursor, limit: 1000 });
+    const pagina = await env.KV.list({ prefix: "u:", cursor, limit: 1000 });
 
     for (const item of pagina.keys) {
       try {
@@ -225,7 +260,7 @@ export async function runCron(env) {
 
         await sendJobs(env, user, { cache });
       } catch (error) {
-        console.log('Erro no cron:', item.name, String(error));
+        console.log("Erro no cron:", item.name, String(error));
       }
     }
 

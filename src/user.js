@@ -1,27 +1,41 @@
-import { FONTES_PADRAO, sanitizarFontes } from './sources.js';
+import { FONTES_PADRAO, sanitizarFontes } from "./sources.js";
 
 const LEGACY_INCLUDE = [
-  'desenvolvedor',
-  'desenvolvedor full stack',
-  'desenvolvedor back end',
-  'desenvolvedor front end',
-  'júnior',
-  'junior',
-  'estágio',
-  'remoto',
+  "desenvolvedor",
+  "desenvolvedor full stack",
+  "desenvolvedor back end",
+  "desenvolvedor front end",
+  "júnior",
+  "junior",
+  "estágio",
+  "remoto",
 ];
 
 const LEGACY_EXCLUDE = [
-  'senior', 'sr', 'pleno', 'pl', 'ii', 'iii',
-  'n1', 'n2', 'n3', 'hibrido', 'hibrida',
-  'pcd', 'mid', 'consultor', 'php', '.net', 'angular',
+  "senior",
+  "sr",
+  "pleno",
+  "pl",
+  "ii",
+  "iii",
+  "n1",
+  "n2",
+  "n3",
+  "hibrido",
+  "hibrida",
+  "pcd",
+  "mid",
+  "consultor",
+  "php",
+  ".net",
+  "angular",
 ];
 
 const mesmaLista = (a, b) =>
-  a.length === b.length && [...a].sort().join('|') === [...b].sort().join('|');
+  a.length === b.length && [...a].sort().join("|") === [...b].sort().join("|");
 
 export const DEFAULTS = {
-  nome: '',
+  nome: "",
   hour: 9,
   count: 25,
   tz: -3,
@@ -33,7 +47,7 @@ export const DEFAULTS = {
   awaiting: null,
   sentJobs: 0,
   sentMessages: 0,
-  lastRun: '',
+  lastRun: "",
 };
 
 export function criarUsuario(chatId) {
@@ -48,7 +62,7 @@ export function criarUsuario(chatId) {
 
 export async function getUser(env, chatId) {
   const id = String(chatId);
-  const salvo = await env.KV.get(`u:${id}`, 'json');
+  const salvo = await env.KV.get(`u:${id}`, "json");
 
   if (!salvo) return criarUsuario(id);
 
@@ -56,8 +70,12 @@ export async function getUser(env, chatId) {
     ...criarUsuario(id),
     ...salvo,
     chatId: id,
-    include: Array.isArray(salvo.include) ? salvo.include : [...DEFAULTS.include],
-    exclude: Array.isArray(salvo.exclude) ? salvo.exclude : [...DEFAULTS.exclude],
+    include: Array.isArray(salvo.include)
+      ? salvo.include
+      : [...DEFAULTS.include],
+    exclude: Array.isArray(salvo.exclude)
+      ? salvo.exclude
+      : [...DEFAULTS.exclude],
     fontes: sanitizarFontes(salvo.fontes),
     sentJobs: Number.isFinite(salvo.sentJobs) ? salvo.sentJobs : 0,
     sentMessages: Number.isFinite(salvo.sentMessages) ? salvo.sentMessages : 0,
