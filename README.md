@@ -22,6 +22,7 @@ atualmente, o bot utiliza as seguintes fontes de oportunidades:
 - 🟢 geekhunter
 - 🔵 recrutei
 - 🟡 trampos.co
+- 🔴 Remotar (exclusivamente vagas remotas)
 
 o projeto foi desenvolvido com foco na automação da busca por vagas, permitindo centralizar oportunidades em um único canal de comunicação e facilitar o acompanhamento de novas publicações.
 
@@ -45,7 +46,6 @@ a estrutura do projeto está organizada da seguinte forma:
 ```plaintext
 srvagas_bot/
 │
-├─ .wrangler/                  # configurações locais do wrangler
 ├─ assets/                     # imagens e recursos visuais
 ├─ node_modules/               # dependências do projeto
 │
@@ -55,6 +55,7 @@ srvagas_bot/
 │   │   ├─ geekhunter.js
 │   │   ├─ gupy.js
 │   │   ├─ recrutei.js
+│   │   ├─ remotar.js
 │   │   ├─ solides.js
 │   │   └─ trampos.js
 │   │
@@ -74,7 +75,7 @@ srvagas_bot/
 ├─ LICENSE
 ├─ package-lock.json
 ├─ package.json
-└─ wrangler.toml                # configurações do cloudflare workers
+└─ wrangler.toml               # configurações do cloudflare workers
 ```
 
 ## ☁️ infraestrutura e funcionamento
@@ -85,7 +86,7 @@ a arquitetura do projeto é organizada em cinco etapas:
 
 1. **telegram:** recebe as mensagens dos usuários e encaminha as solicitações para o worker por meio de um webhook.
 2. **cloudflare workers:** recebe as mensagens, executa o `index.js` e coordena as operações do bot.
-3. **scrapers:** consultam as plataformas de recrutamento e seleção, como gupy, sólides, geekhunter, recrutei e trampos.co para coletar as oportunidades disponíveis.
+3. **scrapers:** consultam as plataformas de recrutamento e seleção, como gupy, sólides, geekhunter, recrutei, trampos.co e Remotar, para coletar as oportunidades disponíveis.
 4. **cloudflare kv:** armazena as configurações e o histórico individual de cada usuário.
 5. **telegram:** recebe os resultados processados e realiza o envio das oportunidades aos usuários.
 
@@ -109,7 +110,7 @@ a arquitetura do projeto é organizada em cinco etapas:
        │              │
        ▼              │
   plataformas         │
-   de vagas           │
+    de vagas          │
        │              │
        └──────┬───────┘
               ▼
@@ -154,7 +155,7 @@ o menu de configurações permite alterar individualmente as preferências de bu
 - 📍 **local:** permite definir a localização das oportunidades, utilizando uma cidade, cidade e estado ou um estado inteiro.
 - ⏰ **horário:** define o horário de envio automático das oportunidades.
 - 📊 **limite:** configura a quantidade máxima de vagas por fonte.
-- 🌐 **fontes:** permite selecionar até duas plataformas entre gupy, sólides, geekhunter, recrutei e trampos.co.
+- 🌐 **fontes:** permite selecionar até duas plataformas entre gupy, sólides, geekhunter, recrutei, trampos.co e Remotar.
 - 🏠 **remoto:** permite ativar ou desativar o filtro de vagas exclusivamente remotas.
 - ✅ **incluir:** gerencia os termos que devem ser considerados nas buscas.
 - ❌ **excluir:** gerencia os termos que devem ser ignorados.
@@ -162,6 +163,23 @@ o menu de configurações permite alterar individualmente as preferências de bu
 também é possível visualizar a quantidade de termos cadastrados em cada filtro e retornar ao menu principal por meio da opção voltar.
 
 as configurações podem ser ajustadas diretamente pelos botões disponibilizados na conversa com o bot.
+
+### 🌐 seleção de fontes
+
+o usuário pode escolher até duas plataformas simultaneamente para realizar as buscas por oportunidades.
+
+as fontes disponíveis são:
+
+- 💜 **gupy:** plataforma de recrutamento e seleção.
+- 🟠 **sólides:** plataforma de recrutamento e gestão de pessoas.
+- 🟢 **geekhunter:** plataforma voltada ao recrutamento de profissionais de tecnologia.
+- 🔵 **recrutei:** plataforma de recrutamento e seleção.
+- 🟡 **trampos.co:** plataforma de oportunidades profissionais.
+- 🔴 **Remotar:** plataforma de oportunidades exclusivamente remotas.
+
+a seleção é realizada por meio de botões interativos no telegram, permitindo ativar ou desativar cada fonte conforme as preferências do usuário.
+
+a quantidade de fontes selecionadas também é apresentada no painel, facilitando o acompanhamento das configurações.
 
 ## 🔎 filtros de busca
 
@@ -184,7 +202,6 @@ o usuário pode configurar uma localização para direcionar a busca de oportuni
 são aceitos diferentes formatos:
 
 - cidade e estado: `São Paulo, SP`
-- cidade e estado: `Curitiba, PR`
 - estado inteiro: `SP`
 
 também é possível limpar a localização configurada, retornando à busca sem restrição geográfica, considerando todo o brasil.
@@ -192,6 +209,14 @@ também é possível limpar a localização configurada, retornando à busca sem
 **observação:** quando o filtro de vagas exclusivamente remotas está ativado, a localização é ignorada. para utilizar o filtro geográfico, é necessário desativar a opção de vagas remotas.
 
 dessa forma, o bot consegue reduzir oportunidades que não correspondem aos critérios de busca configurados.
+
+### 🏠 filtro de vagas remotas
+
+o bot disponibiliza uma opção para priorizar exclusivamente oportunidades de trabalho remoto.
+
+quando ativada, essa configuração direciona as buscas para vagas remotas, desconsiderando a localização cadastrada pelo usuário.
+
+além disso, a Remotar é uma fonte dedicada exclusivamente à divulgação de oportunidades remotas, podendo ser selecionada como uma das duas plataformas escolhidas pelo usuário.
 
 ## 📂 armazenamento de dados
 
@@ -281,5 +306,7 @@ o sr. vagas foi desenvolvido com o propósito de simplificar o acompanhamento de
 a utilização de web scraping, integração com a telegram bot api e armazenamento em nuvem permite reunir oportunidades de diferentes plataformas e disponibilizá-las de maneira prática e organizada.
 
 com o cloudflare workers e o cloudflare kv, o projeto conta com uma infraestrutura em nuvem capaz de executar o bot, processar solicitações e armazenar as preferências dos usuários.
+
+a integração de novas fontes, como a Remotar, amplia as possibilidades de busca e permite que os usuários encontrem oportunidades de diferentes modalidades em um único lugar.
 
 o projeto continua em evolução, com a possibilidade de integrar novas fontes de vagas e ampliar suas funcionalidades.
