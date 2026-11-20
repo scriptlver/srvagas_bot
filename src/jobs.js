@@ -11,6 +11,22 @@ import { getUser, saveUser } from "./user.js";
 import { say, editarMensagem } from "./telegram.js";
 import { criarTextoPagina, montarMensagens, tecladoPagina } from "./views.js";
 
+const CONCORRENCIA = 10;
+
+async function pool(lista, concorrencia, fn) {
+  let i = 0;
+  const workers = Array.from(
+    { length: Math.min(concorrencia, lista.length) },
+    async () => {
+      while (i < lista.length) {
+        const item = lista[i++];
+        await fn(item).catch(() => {});
+      }
+    },
+  );
+  await Promise.all(workers);
+}
+
 export async function mostrarPaginaRestantes(
   env,
   chatId,
@@ -265,96 +281,82 @@ export async function sendJobs(
 export async function runCron(env, scheduledAt = Date.now()) {
   const agora = Number(scheduledAt) || Date.now();
   const cache = new Map();
+  const slotExecucao = new Date(agora).toISOString().slice(0, 13);
 
-  let cursor;
-  let encontrados = 0;
   let processados = 0;
   let ignorados = 0;
   let falhas = 0;
 
   console.log(`Cron iniciado: ${new Date(agora).toISOString()}`);
 
-  try {
-    do {
-      const pagina = await env.KV.list({
-        prefix: "u:",
-        ...(cursor ? { cursor } : {}),
-        limit: 1000,
-      });
+  const chaves = [];
+  let cursor;
 
-      for (const item of pagina.keys || []) {
-        encontrados++;
+  do {
+    const pagina = await env.KV.list({
+      prefix: "u:",
+      ...(cursor ? { cursor } : {}),
+      limit: 1000,
+    });
 
-        try {
-          const user = await getUser(env, item.name.slice(2));
+    chaves.push(...(pagina.keys || []).map((k) => k.name));
 
-          if (user.paused || !user.include.length) {
-            ignorados++;
-            continue;
-          }
+    cursor = pagina.list_complete ? undefined : pagina.cursor;
 
-          const horarioLocal = new Date(agora + user.tz * 3600000);
+    if (!pagina.list_complete && !cursor) {
+      throw new Error("KV informou listagem incompleta sem cursor.");
+    }
+  } while (cursor);
 
-          const hora = horarioLocal.getUTCHours();
+  const fila = [];
 
-          if (hora !== user.hour) {
-            ignorados++;
-            continue;
-          }
+  await pool(chaves, CONCORRENCIA, async (nome) => {
+    try {
+      const user = await getUser(env, nome.slice(2));
+      const hora = new Date(agora + user.tz * 3600000).getUTCHours();
 
-          const slotExecucao = new Date(agora).toISOString().slice(0, 13);
-
-          if (user.lastRunSlot === slotExecucao) {
-            ignorados++;
-            continue;
-          }
-
-          console.log(
-            `Usuário elegível: ${user.chatId} | ` +
-              `Horário: ${user.hour} | Fuso: UTC${user.tz}`,
-          );
-
-          const sucesso = await sendJobs(env, user, { cache });
-
-          if (!sucesso) {
-            falhas++;
-            console.log(
-              `Falha no envio para ${user.chatId}. Será necessário reprocessar.`,
-            );
-            continue;
-          }
-
-          user.lastRunSlot = slotExecucao;
-          await saveUser(env, user);
-
-          processados++;
-
-          console.log(`Usuário processado com sucesso: ${user.chatId}`);
-        } catch (error) {
-          falhas++;
-
-          console.log(
-            `Erro no cron para ${item.name}:`,
-            error?.stack || String(error),
-          );
-        }
+      if (
+        user.paused ||
+        !user.include.length ||
+        hora !== user.hour ||
+        user.lastRunSlot === slotExecucao
+      ) {
+        ignorados++;
+        return;
       }
 
-      cursor = pagina.list_complete ? undefined : pagina.cursor;
+      fila.push(user);
+    } catch (error) {
+      falhas++;
+      console.log(`Erro lendo ${nome}:`, error?.stack || String(error));
+    }
+  });
 
-      if (!pagina.list_complete && !cursor) {
-        throw new Error("KV informou listagem incompleta sem cursor.");
+  await pool(fila, CONCORRENCIA, async (user) => {
+    try {
+      const sucesso = await sendJobs(env, user, { cache });
+
+      if (!sucesso) {
+        falhas++;
+        console.log(`Falha no envio para ${user.chatId}.`);
+        return;
       }
-    } while (cursor);
-  } catch (error) {
-    console.log("Erro geral no Cron:", error?.stack || String(error));
 
-    throw error;
-  } finally {
-    console.log(
-      `Cron finalizado | Encontrados: ${encontrados} | ` +
-        `Processados: ${processados} | Ignorados: ${ignorados} | ` +
-        `Falhas: ${falhas}`,
-    );
-  }
+      user.lastRunSlot = slotExecucao;
+      await saveUser(env, user);
+
+      processados++;
+    } catch (error) {
+      falhas++;
+      console.log(
+        `Erro no cron para ${user.chatId}:`,
+        error?.stack || String(error),
+      );
+    }
+  });
+
+  console.log(
+    `Cron finalizado | Encontrados: ${chaves.length} | ` +
+      `Processados: ${processados} | Ignorados: ${ignorados} | Falhas: ${falhas}`,
+  );
 }
