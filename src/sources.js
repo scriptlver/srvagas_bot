@@ -3,6 +3,7 @@ import { buscarSolides } from "./scrapers/solides.js";
 import { buscarGeekHunter } from "./scrapers/geekhunter.js";
 import { buscarRecrutei } from "./scrapers/recrutei.js";
 import { buscarTrampos } from "./scrapers/trampos.js";
+import { buscarRemotar } from "./scrapers/remotar.js";
 
 export const MAX_FONTES = 2;
 
@@ -31,6 +32,12 @@ export const FONTES = [
     chave: "Trampos.co",
     emoji: "🟡",
     buscar: buscarTrampos,
+  },
+  {
+    chave: "Remotar (apenas vagas remotas)",
+    emoji: "🔴",
+    buscar: buscarRemotar,
+    nota: "🏠 <i>Apenas vagas 100% remotas</i>",
   },
 ];
 
